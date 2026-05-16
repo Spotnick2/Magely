@@ -5,7 +5,7 @@
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Spell_Holy_ArcaneIntellect
 ## SavedVariables: MagelyDB
-## X-Curse-Project-ID: 1489106
+## X-Curse-Project-ID: 1545112
 
 MagelyConfig.lua
 Magely.lua
