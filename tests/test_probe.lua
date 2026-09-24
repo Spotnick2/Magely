@@ -263,7 +263,9 @@ rawset(_G, "NotifyInspect", function() error("refused") end)
 H.check(pcall(slash, "inspect"), "a refused NotifyInspect does not crash the probe")
 H.check((result("NotifyInspect(target)") or ""):find("threw", 1, true), "and is recorded as refused")
 queriesBefore = #queries
-H.check(pcall(P.OnInspectReady, "T1"), "a later INSPECT_READY for that unit")
+-- For exactly the unit the refused request named - the current target - so
+-- only the request having been forgotten can keep it out.
+H.check(pcall(P.OnInspectReady, UnitGUID("target")), "a later INSPECT_READY for that unit")
 H.eq(#queries, queriesBefore, "is not queried: no request of ours went out")
 H.eq(result("INSPECT_READY ignored (not the requested unit)"), 2, "and is counted as ignored")
 rawset(_G, "NotifyInspect", function(unit) notified = notified + 1 end)
