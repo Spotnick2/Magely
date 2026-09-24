@@ -120,8 +120,31 @@ H.check(amp > 0 and damp > 0, "some instances suit each buff")
 for _, tbc in ipairs({ "Karazhan", "Black Temple", "The Shattered Halls", "Magisters' Terrace" }) do
     H.check(not seen[tbc], tbc .. " (TBC) is not listed")
 end
--- Forever's own, from Priestly's measured list.
-H.check(seen["Ruins of Lordaeron"], "Ruins of Lordaeron, measured in game by Priestly, is listed")
+-- The keys must be exactly what GetInstanceInfo() returns: a misspelt one
+-- never matches, and instance mode just silently never fires there. So the
+-- names are pinned here, independently of the source - copied from Priestly's
+-- INSTANCE_DB, which is where Forever's names are kept (Ruins of Lordaeron is
+-- measured in game; its FOREVER-PROBE.md section 12).
+local EXPECTED = {
+    "The Barrow Deeps", "Hyjal Summit", "Onyxia's Lair",
+    "Ragefire Chasm", "The Hall of Thanes", "Ruins of Lordaeron", "Wailing Caverns",
+    "The Deadmines", "Shadowfang Keep", "The Stockade", "Excavation Site: Wetlands",
+    "Blackfathom Deeps", "City of Dalaran", "Scarlet Monastery", "Gnomeregan",
+    "Razorfen Kraul", "The Drowned City", "Krol'Dok Stronghold", "Razorfen Downs",
+    "Uldaman", "Zul'Farrak", "Maraudon", "Alcaz Prison", "The Temple of Atal'Hakkar",
+    "Blackrock Depths", "Blackrock Spire", "Blackmaw Hold", "Dire Maul", "Scholomance",
+    "Stratholme", "Shaper's Terrace",
+}
+local expected = {}
+for _, name in ipairs(EXPECTED) do
+    expected[name] = true
+    H.check(seen[name], name .. " is listed, spelt exactly")
+end
+for name in pairs(seen) do
+    H.check(expected[name], name .. " is an instance this test knows - a new or renamed key "
+        .. "has to be added here on purpose")
+end
+H.eq(#TC.INSTANCE_DB, #EXPECTED, "and nothing else is")
 H.eq(MagelyDB.amplifyInstances["Ruins of Lordaeron"], false,
     "and Forever's uncatalogued instances start unchecked")
 

@@ -17,6 +17,14 @@ local BROKEN = TC.SV_BROKEN_ON_BUILD
 local MEASURED = TC.MEASURED_ON_BUILD
 local FIXED = "70123"   -- any build other than the two above
 
+-- Pinned independently of the source: the checks below take their builds
+-- from it, so a stale constant would pass them all. 69977 is the build of the
+-- newest API dump, re-checked against 69913 in the porting notes - the same
+-- API surface, and SavedVariables still broken. Bump this with the constants
+-- after re-measuring, never to make a test pass.
+H.eq(MEASURED, "69977", "MEASURED_ON_BUILD is the build the notes were last checked on")
+H.eq(BROKEN, "69977", "SV_BROKEN_ON_BUILD is the newest build SavedVariables are measured broken on")
+
 ------------------------------------------------------------
 -- The setters
 ------------------------------------------------------------

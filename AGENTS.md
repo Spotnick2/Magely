@@ -200,8 +200,14 @@ and Wildly. The TBC addon kept `MagelyDB` account-wide; there is no migration, b
 separate install and nothing loads back on this client anyway.
 
 **NO SavedVariables load back on this client — per-character included** (measured on build
-1.60.1.69913; see Priestly's `AGENTS.md` and `docs/FOREVER-PROBE.md` section 11). Every session
-starts from defaults. Write the addon so losing every setting at login is survivable.
+1.60.1.69913 and re-checked on 69977; see Priestly's `AGENTS.md`, `docs/FOREVER-PROBE.md` section
+11, and the PORTING doc section 0). Every session starts from defaults. Write the addon so losing
+every setting at login is survivable.
+
+`MEASURED_ON_BUILD` and `SV_BROKEN_ON_BUILD` in `MagelyConfig.lua` are **69977**, the newest build
+both facts were checked on; Priestly and Wildly still carry 69913. `test_config_seam` pins them
+independently of the source, so bump the test with the constants after re-measuring - never to
+make it pass.
 
 - **Never verify persistence by reading the SV file or diffing it against `.bak`.** It always
   looks populated because `EnsureDefaults` rewrites every default each session. Count launches
