@@ -163,6 +163,12 @@ close (but not the roster arriving just after login); never on other roster chur
 a settings change or a zone change over a close; nothing at all on another class, slash commands
 included (one line saying so). Its test seam is `Magely._test`.
 
+One rule Wildly does not need: an Amplify or Dampen **landing** can give a closed window its row
+(Intellect untracked, the rest "when detected"). A relevant `UNIT_AURA` refreshes an open window;
+for a closed one it queues **one** check per burst (`ReopenForAura`: `ui:Open` is not coalesced,
+LibGroupBuffs #22, and `UNIT_AURA` is the noisiest event there is), never in combat, and only
+through `WantsOpen` and `ui:Open`, so a player's close still wins.
+
 ### Buff definitions
 
 `DEFS` are ID-based, the library's format: `id`, `snglID`, optional `grpID`, enUS `sngl` / `grp`

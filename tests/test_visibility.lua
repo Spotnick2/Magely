@@ -336,4 +336,93 @@ H.check(not shown(), "leaving the instance takes it away again")
 H.eq(MagelyDB.visible, true, "without that counting as a close either")
 WoW.instanceName, WoW.instanceType = "", nil
 
+------------------------------------------------------------
+-- A detect-mode buff landing brings back a window that closed for want of
+-- rows - but never one the player closed, never in combat, and once per
+-- burst of aura events
+------------------------------------------------------------
+
+local function detectOnly()
+    setup(2)
+    MagelyDB.trackIntellect = false
+    MagelyDB.amplifyMode, MagelyDB.dampenMode = "detect", "detect"
+    H.TeachSpells({ "INT_SINGLE", "AMPLIFY", "DAMPEN" })
+    T.RefreshSpellData()
+    WoW.dispatch("PLAYER_LOGIN")
+    settle()
+end
+
+local function rowOf(id)
+    for _, r in ipairs(T.rows()) do
+        if r._active and r._def and r._def.id == id then return r end
+    end
+end
+
+for _, pair in ipairs({ { "amplify", "Amplify Magic" }, { "dampen", "Dampen Magic" } }) do
+    detectOnly()
+    H.check(not shown(), pair[2] .. ": with nobody buffed and Intellect untracked there is no window")
+    H.eq(MagelyDB.visible, true, "which is not a close")
+    WoW.SetAura("party1", pair[2], 600, 400)
+    WoW.dispatch("UNIT_AURA", "party1", { addedAuras = { { name = pair[2] } } })
+    settle()
+    H.check(shown(), pair[2] .. " landing on a member brings the window back")
+    H.check(rowOf(pair[1]) ~= nil, "with the " .. pair[2] .. " row")
+end
+
+-- The player's close wins.
+detectOnly()
+SlashCmdList["MAGELY"]("show")
+settle()
+T.CloseUI(true)
+WoW.SetAura("party1", "Amplify Magic", 600, 400)
+WoW.dispatch("UNIT_AURA", "party1", { addedAuras = { { name = "Amplify Magic" } } })
+settle()
+H.check(not shown(), "an aura never reopens a window the player closed")
+H.eq(MagelyDB.visible, false, "and the close is still remembered")
+
+-- Combat: the auras cannot be read to decide, and nothing is queued for
+-- combat's end either.
+detectOnly()
+WoW.inCombat = true
+WoW.SetAura("party1", "Amplify Magic", 600, 400)
+WoW.dispatch("UNIT_AURA", "party1", { addedAuras = { { name = "Amplify Magic" } } })
+settle()
+H.check(not shown(), "an aura event in combat opens nothing")
+WoW.inCombat = false
+WoW.dispatch("PLAYER_REGEN_ENABLED")
+settle()
+H.check(not shown(), "and leaves nothing queued for combat's end")
+
+-- One check per burst: a raid's UNIT_AURA storm while the window is closed
+-- must not queue a full rebuild per event. The costly case is the one where
+-- the reopen succeeds: a burst that finds nothing closes again after the first
+-- rebuild, and the library drops the rest, but one that finds a row keeps
+-- every queued open alive.
+local ui = T.ui
+local realUpdate = ui.Update
+local updates = 0
+local function countUpdates() updates = 0
+    ui.Update = function(self, ...) updates = updates + 1 return realUpdate(self, ...) end
+end
+
+detectOnly()
+countUpdates()
+for _ = 1, 25 do
+    WoW.dispatch("UNIT_AURA", "party1", { updatedAuraInstanceIDs = { 1 } })
+end
+settle()
+H.check(updates <= 1, "25 aura events that find nothing cost at most one rebuild: " .. updates)
+H.check(not shown(), "and with still nothing to show, the window stays closed")
+
+detectOnly()
+WoW.SetAura("party1", "Dampen Magic", 600, 400)
+countUpdates()
+for _ = 1, 25 do
+    WoW.dispatch("UNIT_AURA", "party1", { updatedAuraInstanceIDs = { 1 } })
+end
+settle()
+H.check(shown(), "a burst that does find a row opens the window")
+H.eq(updates, 1, "with one rebuild, not one per event")
+ui.Update = nil   -- back to the shared method
+
 H.done("test_visibility")

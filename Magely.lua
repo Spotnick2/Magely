@@ -349,6 +349,26 @@ function Magely_ApplyAlpha()
     ui:ApplyAppearance()
 end
 
+-- An aura that could bring a row back, arriving while the window is closed.
+-- Only a window that would open by itself (WantsOpen: never over the player's
+-- close), and never in combat, where the auras cannot be read to decide.
+--
+-- Coalesced here, because ui:Open is not (LibGroupBuffs issue #22) and
+-- UNIT_AURA is the noisiest event there is: every update or removal counts
+-- as relevant, since those arrive without a spell to filter on. One queued
+-- check per burst, which asks again when it fires and opens through ui:Open,
+-- never ui:Update, so a close in between still wins.
+local g_ReopenQueued = false
+
+local function ReopenForAura()
+    if g_ReopenQueued or InCombatLockdown() or not WantsOpen() then return end
+    g_ReopenQueued = true
+    C_Timer.After(0.35, function()
+        g_ReopenQueued = false
+        if not ui:IsVisible() and not InCombatLockdown() and WantsOpen() then ui:Open(0) end
+    end)
+end
+
 -- ─── Events ──────────────────────────────────────────────────────────────────
 
 -- RegisterEvent throws on an unknown event name on this client, so every
@@ -410,7 +430,17 @@ evtFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     elseif event == "UNIT_AURA" then
         -- Checked against every def, not only the visible ones: an Amplify
         -- landing on somebody is what makes its row appear in detect mode.
-        if AuraEventIsRelevant(arg1, arg2) then ui:ScheduleRefresh() end
+        if AuraEventIsRelevant(arg1, arg2) then
+            if ui:IsVisible() then
+                ui:ScheduleRefresh()
+            else
+                -- A refresh does nothing for a window that is not open, and
+                -- one that closed itself for want of rows - Intellect
+                -- untracked, the rest "when detected" and nobody buffed -
+                -- would never see its row appear.
+                ReopenForAura()
+            end
+        end
 
     elseif event == "UNIT_PET" then
         -- Pet summoned or dismissed: rebuild to add/remove pet rows
