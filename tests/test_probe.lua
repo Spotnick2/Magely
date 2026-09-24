@@ -257,6 +257,17 @@ H.check((result("INSPECT_READY") or ""):find("target changed", 1, true),
     "is recorded as that: " .. tostring(result("INSPECT_READY")))
 H.eq(#queries, queriesBefore, "and the new target is not queried in the old one's name")
 
+-- A request that never went out: NotifyInspect refused. Another addon's
+-- INSPECT_READY for the same unit must not be published as this answer.
+rawset(_G, "NotifyInspect", function() error("refused") end)
+H.check(pcall(slash, "inspect"), "a refused NotifyInspect does not crash the probe")
+H.check((result("NotifyInspect(target)") or ""):find("threw", 1, true), "and is recorded as refused")
+queriesBefore = #queries
+H.check(pcall(P.OnInspectReady, "T1"), "a later INSPECT_READY for that unit")
+H.eq(#queries, queriesBefore, "is not queried: no request of ours went out")
+H.eq(result("INSPECT_READY ignored (not the requested unit)"), 2, "and is counted as ignored")
+rawset(_G, "NotifyInspect", function(unit) notified = notified + 1 end)
+
 -- And the real answer, with the target unchanged.
 WoW.SetUnit("target", { name = "Zoruka Mortalis", guid = "T1", class = "PRIEST" })
 H.check(pcall(slash, "inspect"), "inspect again")

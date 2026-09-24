@@ -438,6 +438,9 @@ local function Inspect()
     local okG, guid = pcall(function() return UG and UG("target") end)
     inspectGUID = okG and guid or nil
     local okN, err = pcall(Notify, "target")
+    -- No request went out, so no INSPECT_READY is ours: somebody else's
+    -- inspection of the same unit must not be published under this one.
+    if not okN then inspectGUID = nil end
     Record("NotifyInspect(target)", okN and "sent - waiting for INSPECT_READY" or ("threw: " .. tostring(err)))
 end
 
