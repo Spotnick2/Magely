@@ -43,6 +43,10 @@ local function Say(text)
     if chat then chat:AddMessage(C .. text) end
 end
 
+-- The probe's own entry points and frames, on one table: the event frames
+-- call through it, and tests reach the frames to model a client refusal.
+MagelyProbe = {}
+
 -- Fresh every session on purpose: nothing loads back on this build anyway.
 MagelyProbeDB = { build = nil, results = {}, casts = {}, samples = {}, blocked = {} }
 local DB = MagelyProbeDB
@@ -133,7 +137,7 @@ local function UnitKind(unit)
     return ok and kind or "unreadable unit"
 end
 
-function MagelyProbe_OnCast(unit, castGUID, spellID)
+function MagelyProbe.OnCast(unit, castGUID, spellID)
     local combat = InCombat() and "combat" or "nocombat"
     local secret = Secret(spellID)
     local readable, name = "readable", nil
@@ -160,7 +164,7 @@ local function WatchCasts(on)
         local ok, registered = pcall(castFrame.RegisterEvent, castFrame, "UNIT_SPELLCAST_SUCCEEDED")
         Record("UNIT_SPELLCAST_SUCCEEDED registers",
             ok and tostring(registered ~= false) or ("threw: " .. tostring(registered)))
-        castFrame:SetScript("OnEvent", function(_, _, ...) MagelyProbe_OnCast(...) end)
+        castFrame:SetScript("OnEvent", function(_, _, ...) MagelyProbe.OnCast(...) end)
         Say("watching casts. Have party members cast anything, in and out of combat, then "
             .. "/mprobe report.")
     else
@@ -177,65 +181,93 @@ end
 -- frame anchored under it. The assumption is that the pane stays free - the
 -- dependency runs from the pane to the window, not back - but that is exactly
 -- what nobody has measured.
+--
+-- A refusal is silent: the call does nothing and ADDON_ACTION_BLOCKED fires,
+-- blamed on whichever addon's taint the call path carries (Priestly probe
+-- section 13), not necessarily this one. So each attempt is judged by whether
+-- it TOOK EFFECT, and the blocked events it raised are reported with the
+-- function and the addon they were blamed on - never as a bare count, and not
+-- at all if the watcher could not register.
 ------------------------------------------------------------
 
-local paneParent, pane
+-- Whether each restricted-action event registered: without it, "no blocked
+-- event" would read as a clean pass while nothing was listening.
+local blockWatch = {}
 
-local function OnBlocked(event, who, fn)
-    local ok, text = pcall(function() return tostring(who) .. " " .. tostring(fn) end)
+function MagelyProbe.OnBlocked(event, who, fn)
+    local ok, text = pcall(function() return tostring(fn) .. " blamed on " .. tostring(who) end)
     DB.blocked[#DB.blocked + 1] = event .. ": " .. (ok and text or "unreadable")
 end
 
 local blockFrame
 
+local function WatchBlocked()
+    if blockFrame then return end
+    blockFrame = G("CreateFrame")("Frame")
+    for _, ev in ipairs({ "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN" }) do
+        local ok, registered = pcall(blockFrame.RegisterEvent, blockFrame, ev)
+        blockWatch[ev] = ok and registered ~= false
+        Record(ev .. " registers", ok and tostring(registered ~= false) or ("threw: " .. tostring(registered)))
+    end
+    blockFrame:SetScript("OnEvent", function(_, ev, ...) MagelyProbe.OnBlocked(ev, ...) end)
+end
+
 local function PaneBuild()
     if InCombat() then Say("build it out of combat") return end
-    if paneParent then Say("already built") return end
+    if MagelyProbe.pane then Say("already built") return end
     local CF, UIP = G("CreateFrame"), G("UIParent")
-    paneParent = CF("Frame", nil, UIP)
-    paneParent:SetSize(120, 60)
-    paneParent:SetPoint("CENTER", UIP, "CENTER", 0, 150)
-    local secure = CF("Button", nil, paneParent, "SecureActionButtonTemplate")
-    secure:SetAllPoints(paneParent)
-    local bg = paneParent:CreateTexture(nil, "BACKGROUND")
+    local parent = CF("Frame", nil, UIP)
+    parent:SetSize(120, 60)
+    parent:SetPoint("CENTER", UIP, "CENTER", 0, 150)
+    local secure = CF("Button", nil, parent, "SecureActionButtonTemplate")
+    secure:SetAllPoints(parent)
+    local bg = parent:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
     bg:SetColorTexture(0.1, 0.1, 0.4, 0.8)
     -- Explicitly shown: the control below reads "did Hide take effect" from
     -- IsShown, which would be true of a frame that was never shown at all.
-    paneParent:Show()
+    parent:Show()
 
-    pane = CF("Frame", nil, UIP)
+    local pane = CF("Frame", nil, UIP)
     pane:SetSize(120, 40)
-    pane:SetPoint("TOPLEFT", paneParent, "BOTTOMLEFT", 0, -4)
+    pane:SetPoint("TOPLEFT", parent, "BOTTOMLEFT", 0, -4)
     local pbg = pane:CreateTexture(nil, "BACKGROUND")
     pbg:SetAllPoints()
     pbg:SetColorTexture(0.4, 0.1, 0.1, 0.8)
     pane:Show()
 
-    if not blockFrame then
-        blockFrame = CF("Frame")
-        for _, ev in ipairs({ "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN" }) do
-            pcall(blockFrame.RegisterEvent, blockFrame, ev)
-        end
-        blockFrame:SetScript("OnEvent", function(_, ev, ...) OnBlocked(ev, ...) end)
-    end
-    Record("pane built; parent protected", tostring(paneParent.IsProtected and paneParent:IsProtected()))
+    MagelyProbe.parent, MagelyProbe.pane = parent, pane
+    WatchBlocked()
+    local okP, prot = pcall(function() return tostring(parent:IsProtected()) end)
+    Record("pane built; stand-in IsProtected", okP and prot or "unreadable")
     Say("blue = the protected stand-in, red = the plain pane under it. Start a fight, then "
         .. "/mprobe pane test.")
 end
 
--- One attempted change: whether it threw, whether it took effect, and how
--- many ADDON_ACTION_BLOCKED/FORBIDDEN it raised.
+-- One attempted change: whether it threw, whether it took effect, and which
+-- restricted-action events it raised. Returns whether it took effect.
 local function Try(label, act, check)
     local before = #DB.blocked
     local ok, err = pcall(act)
     local okCheck, result = pcall(check)
     local took = okCheck and result and true or false
-    Record("pane " .. label, string.format("%s, took effect=%s, blocked events=%d",
-        ok and "no error" or ("threw: " .. tostring(err)), tostring(took), #DB.blocked - before))
+    local blocked
+    if not (blockWatch.ADDON_ACTION_BLOCKED and blockWatch.ADDON_ACTION_FORBIDDEN) then
+        blocked = "blocked events unavailable (watcher not registered)"
+    elseif #DB.blocked == before then
+        blocked = "no blocked event"
+    else
+        local seen = {}
+        for i = before + 1, #DB.blocked do seen[#seen + 1] = DB.blocked[i] end
+        blocked = "raised " .. table.concat(seen, "; ")
+    end
+    Record("pane " .. label, string.format("%s, took effect=%s, %s",
+        ok and "no error" or ("threw: " .. tostring(err)), tostring(took), blocked))
+    return took
 end
 
 local function PaneTest()
+    local pane, parent = MagelyProbe.pane, MagelyProbe.parent
     if not pane then Say("run /mprobe pane build first, out of combat") return end
     Record("pane test in combat", tostring(InCombat()))
     -- Read defensively: a number the client does not hand back must not end
@@ -246,22 +278,28 @@ local function PaneTest()
         function() return math.abs(pane:GetHeight() - (h + 20)) < 0.5 end)
     Try("re-anchor", function()
         pane:ClearAllPoints()
-        pane:SetPoint("BOTTOMLEFT", paneParent, "TOPLEFT", 0, 4)
+        pane:SetPoint("BOTTOMLEFT", parent, "TOPLEFT", 0, 4)
     end, function()
         local point = pane:GetPoint()
         return point == "BOTTOMLEFT"
     end)
-    Try("Hide", function() pane:Hide() end, function() return not pane:IsShown() end)
-    Try("Show", function() pane:Show() end, function() return pane:IsShown() end)
+    -- Show only means something from hidden: after a refused Hide the pane is
+    -- still shown, and "shown after Show" would pass without anything having
+    -- happened.
+    if Try("Hide", function() pane:Hide() end, function() return not pane:IsShown() end) then
+        Try("Show", function() pane:Show() end, function() return pane:IsShown() end)
+    else
+        Record("pane Show", "untestable: Hide was refused, so the pane never left the screen")
+    end
     -- The control: this one SHOULD be refused in combat.
-    Try("Hide the PROTECTED stand-in (control)", function() paneParent:Hide() end,
-        function() return not paneParent:IsShown() end)
+    Try("Hide the PROTECTED stand-in (control)", function() parent:Hide() end,
+        function() return not parent:IsShown() end)
 end
 
 local function PaneRemove()
     if InCombat() then Say("remove it out of combat") return end
-    if pane then pane:Hide() pane = nil end
-    if paneParent then paneParent:Hide() paneParent = nil end
+    if MagelyProbe.pane then MagelyProbe.pane:Hide() MagelyProbe.pane = nil end
+    if MagelyProbe.parent then MagelyProbe.parent:Hide() MagelyProbe.parent = nil end
     Say("pane removed")
 end
 
@@ -294,9 +332,16 @@ end
 -- { groupIndex, isInspect, tier, column, target, specializationIndex,
 --   talentIndex, isPet }. Which fields address a Vanilla talent tree is the
 -- question, so both shapes are tried and every hit is recorded.
+--
+-- A result may be a secret value, and a secret throws when truth-tested, not
+-- only when read - so the call, the nil test and every field read happen in
+-- one pcall, which hands back plain strings.
 ------------------------------------------------------------
 
 local inspectFrame
+-- The GUID /mprobe inspect asked about. INSPECT_READY for anybody else -
+-- another addon's inspection, or a target changed since - is not this answer.
+local inspectGUID
 
 local function QueryTalents(isInspect, unit)
     local CSI = G("C_SpecializationInfo")
@@ -317,19 +362,18 @@ local function QueryTalents(isInspect, unit)
         local hits, errors, firstErr, examples = 0, 0, nil, {}
         for a = 1, shape.outer do
             for b = 1, shape.inner do
-                local ok, res = pcall(CSI.GetTalentInfo, shape.make(a, b))
+                local ok, kind, text = pcall(function()
+                    local res = CSI.GetTalentInfo(shape.make(a, b))
+                    if res == nil then return "none" end
+                    return "hit", string.format("%d,%d=%s r%s/%s", a, b, tostring(res.name),
+                        tostring(res.rank), tostring(res.maxRank))
+                end)
                 if not ok then
                     errors = errors + 1
-                    firstErr = firstErr or tostring(res)
-                elseif res then
+                    firstErr = firstErr or tostring(kind)
+                elseif kind == "hit" then
                     hits = hits + 1
-                    if #examples < 4 then
-                        local okName, text = pcall(function()
-                            return string.format("%d,%d=%s r%s/%s", a, b, tostring(res.name),
-                                tostring(res.rank), tostring(res.maxRank))
-                        end)
-                        examples[#examples + 1] = okName and text or "unreadable"
-                    end
+                    if #examples < 4 then examples[#examples + 1] = text end
                 end
             end
         end
@@ -339,22 +383,36 @@ local function QueryTalents(isInspect, unit)
     end
 end
 
-function MagelyProbe_OnInspectReady(guid)
+local IGNORED = "INSPECT_READY ignored (not the requested unit)"
+
+function MagelyProbe.OnInspectReady(guid)
     local UG = G("UnitGUID")
-    local ok, same = pcall(function() return UG and UG("target") == guid end)
-    Record("INSPECT_READY for the target", ok and tostring(same) or "unreadable")
-    QueryTalents(true, "target")
-    local CSI = G("C_SpecializationInfo")
-    if CSI and CSI.GetInspectSpecialization then
-        local okS, spec = pcall(CSI.GetInspectSpecialization, "target")
-        Record("GetInspectSpecialization(target)", okS and tostring(spec) or ("threw: " .. tostring(spec)))
+    local okMatch, isOurs = pcall(function() return inspectGUID ~= nil and guid == inspectGUID end)
+    if not (okMatch and isOurs) then
+        -- Somebody else's inspection (another addon's, or an older request of
+        -- ours): not this measurement, and not ours to clear.
+        DB.results[IGNORED] = (DB.results[IGNORED] or 0) + 1
+        return
+    end
+    inspectGUID = nil
+    local okT, stillTarget = pcall(function() return UG and UG("target") == guid end)
+    if not (okT and stillTarget) then
+        Record("INSPECT_READY", "arrived after the target changed - not queried, run it again")
+    else
+        Record("INSPECT_READY", "for the requested target")
+        QueryTalents(true, "target")
+        local CSI = G("C_SpecializationInfo")
+        if CSI and CSI.GetInspectSpecialization then
+            local okS, spec = pcall(function() return tostring(CSI.GetInspectSpecialization("target")) end)
+            Record("GetInspectSpecialization(target)", okS and spec or ("threw: " .. tostring(spec)))
+        end
     end
     local clear = G("ClearInspectPlayer")
     if clear then pcall(clear) end
 end
 
 local function Inspect()
-    local UE, CanI, Notify = G("UnitExists"), G("CanInspect"), G("NotifyInspect")
+    local UE, UG, CanI, Notify = G("UnitExists"), G("UnitGUID"), G("CanInspect"), G("NotifyInspect")
     -- Your own talents first, as the control: if these read nothing, neither
     -- shape addresses a Vanilla tree at all.
     QueryTalents(false, nil)
@@ -364,14 +422,21 @@ local function Inspect()
             CanI and "present" or "MISSING", Notify and "present" or "MISSING"))
         return
     end
-    local okC, can = pcall(CanI, "target", false)
+    -- One argument, as the 69977 dump declares it: CanInspect(targetGUID:UnitToken).
+    local okC, can = pcall(function() return CanI("target") and true or false end)
     Record("CanInspect(target)", okC and tostring(can) or ("threw: " .. tostring(can)))
+    if not (okC and can) then
+        Say("the client says this target cannot be inspected - get closer, or try another")
+        return
+    end
     if not inspectFrame then
         inspectFrame = G("CreateFrame")("Frame")
         local ok, registered = pcall(inspectFrame.RegisterEvent, inspectFrame, "INSPECT_READY")
         Record("INSPECT_READY registers", ok and tostring(registered ~= false) or ("threw: " .. tostring(registered)))
-        inspectFrame:SetScript("OnEvent", function(_, _, guid) MagelyProbe_OnInspectReady(guid) end)
+        inspectFrame:SetScript("OnEvent", function(_, _, guid) MagelyProbe.OnInspectReady(guid) end)
     end
+    local okG, guid = pcall(function() return UG and UG("target") end)
+    inspectGUID = okG and guid or nil
     local okN, err = pcall(Notify, "target")
     Record("NotifyInspect(target)", okN and "sent - waiting for INSPECT_READY" or ("threw: " .. tostring(err)))
 end
