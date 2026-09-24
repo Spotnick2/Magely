@@ -110,7 +110,12 @@ window for it.**
   A change to how buffs are read, targeted or drawn belongs in the library, not here.
 - `docs/FOREVER-NOTES.md` — what is measured and what is not, and the in-game checklist.
 - `tests/` — Lua 5.1 unit tests, no game client. See `tests/README.md`.
-- `Tools/deploy.ps1` — deploy to the local Forever AddOns folder, library included.
+- `Tools/deploy.ps1` — deploy to the local Forever AddOns folder, library included. `-Probe` /
+  `-ProbeOnly` deploy `Tools/MagelyProbe` too / alone.
+- `Tools/MagelyProbe/` — the throwaway probe for the cooldown pane's questions (`/mprobe`); see
+  `docs/FOREVER-NOTES.md`. Never shipped (`.pkgmeta` ignores `Tools`). It reads every client global
+  with `rawget`, so a missing API is recorded rather than fatal, and `tests/test_probe.lua` holds it
+  to that.
 - `.github/workflows/package-check.yml` — tests against the pinned library, a dry-run package, and
   a check that the zip embeds the library. Publishes nothing.
 - `.pkgmeta`, `README.md`, `CHANGELOG.md`, `LICENSE` — packaging and user-facing material.

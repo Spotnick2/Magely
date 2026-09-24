@@ -41,6 +41,22 @@ build and date, when it is measured.
 | A wired unit token handed to another player by a roster change mid-fight | A click can land on the wrong member until combat ends (known, unfixable - Priestly probe §14) | Reshuffle a raid in combat |
 | The instance names beyond the ones Priestly has stood in | Instance mode silently never fires on a misspelt key | Enter the instance with a mode on "by instance"; Magely reports an unknown name |
 
+## The cooldown pane's questions - `Tools/MagelyProbe`
+
+The pane (slice 5, LibGroupBuffs #24) waits on these. **Most need no Mage and no level 40**: any
+character in a group can answer them. Deploy with `pwsh Tools/deploy.ps1 -ProbeOnly`, then:
+
+| Command | Answers | Needs |
+|---|---|---|
+| `/mprobe spells` | Do the Mage / Druid / Priest IDs above resolve, and which does this character know? Arcane Powder's icon | Any character |
+| `/mprobe cast on`, then `/mprobe report` | Does `UNIT_SPELLCAST_SUCCEEDED` fire for party and raid members, and is `spellID` readable, **secret** or throwing, in and out of combat? | A group; people casting anything |
+| `/mprobe pane build`, fight, `/mprobe pane test`, `/mprobe pane remove` | Can a **plain** frame anchored under a protected one be resized, re-anchored, hidden and shown in combat? (The protected stand-in's own hide is the control, and should be refused.) | Any character, a fight |
+| `/mprobe whisper First Surname` | Is a WHISPER to a surnamed name accepted through `C_ChatInfo.SendChatMessage`? Ask the recipient whether it arrived | A second character |
+| `/mprobe inspect` (with a target) | What `C_SpecializationInfo.GetTalentInfo` returns, for yourself and an inspected unit, by specialization/talent index and by tier/column | A target with talents |
+
+Results print in chat and land in `MagelyProbeDB` on disk after `/reload`. Record the answers here,
+with the build and the date.
+
 ## In-game checklist for testers
 
 ```

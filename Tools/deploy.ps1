@@ -16,12 +16,16 @@
         pwsh Tools/deploy.ps1
         pwsh Tools/deploy.ps1 -AddOnsPath "D:\...\_classic_beta_\Interface\AddOns"
         pwsh Tools/deploy.ps1 -Library "D:\src\LibGroupBuffs"
+        pwsh Tools/deploy.ps1 -Probe         # addon + MagelyProbe
+        pwsh Tools/deploy.ps1 -ProbeOnly     # just MagelyProbe (runs on any class)
 #>
 
 param(
     [string]$AddOnsPath = "C:\Program Files (x86)\World of Warcraft\_classic_beta_\Interface\AddOns",
     [string]$Library = "",
-    [string]$Lua = "C:\Program Files (x86)\Lua\5.1\lua.exe"
+    [string]$Lua = "C:\Program Files (x86)\Lua\5.1\lua.exe",
+    [switch]$Probe,
+    [switch]$ProbeOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -113,7 +117,25 @@ function Deploy-Magely {
     Write-Host "  Libs\LibGroupBuffs-1.0  ($($libFiles.Count) files from $libRoot @ $revision)"
 }
 
-Deploy-Magely
+# The throwaway probe for the cooldown pane's questions (docs/FOREVER-NOTES.md).
+# Its own addon folder, so it loads on any character, Mage or not.
+function Deploy-Probe {
+    $src = Join-Path $RepoRoot "Tools\MagelyProbe"
+    if (-not (Test-Path $src)) {
+        Write-Host "No Tools\MagelyProbe - skipping" -ForegroundColor DarkYellow
+        return
+    }
+    $dest = Join-Path $AddOnsPath "MagelyProbe"
+    Write-Host "Deploying MagelyProbe -> $dest" -ForegroundColor Cyan
+    if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest | Out-Null }
+    Get-ChildItem -LiteralPath $src -File | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $dest $_.Name) -Force
+        Write-Host "  $($_.Name)"
+    }
+}
+
+if (-not $ProbeOnly) { Deploy-Magely }
+if ($Probe -or $ProbeOnly) { Deploy-Probe }
 
 Write-Host ""
 Write-Host "Done. In game:  /console scriptErrors 1  then  /reload" -ForegroundColor Green

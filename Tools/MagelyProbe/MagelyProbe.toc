@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: |cffff8800Magely Probe|r
+## Notes: Throwaway API probe for Magely's cooldown pane on WoW: Forever. /mprobe
+## Author: Spotnick
+## Version: dev
+## SavedVariables: MagelyProbeDB
+
+MagelyProbe.lua
