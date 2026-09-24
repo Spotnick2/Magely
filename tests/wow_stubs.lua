@@ -244,6 +244,9 @@ local function makeFrame(name, parent, template)
     f.GetParent = function(self) return self._parent end
     f.IsVisible = function(self) return self._shown end
     f.IsMouseEnabled = function(self) return true end
+    -- Magely: recorded, so a test can assert a control asked for the mouse
+    -- (carried over from Wildly's stub).
+    f.EnableMouse = function(self, on) self._mouseEnabled = on return self end
     f.RegisterForClicks = function(self, ...) self._clicks = { ... } return self end
     -- Recorded, so a test can assert what a font string or texture shows
     -- rather than only that the call did not throw.

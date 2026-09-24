@@ -54,10 +54,17 @@ The port lands in slices, one issue and PR each:
 4. **In-game pass and v1.0.0.**
 5. **The cooldown pane**, after v1.0 (see below).
 
-Slice 1 is done. **Do not deploy or tag before slice 3**: until then `MagelyConfig.lua` and
-`Magely.lua` are the TBC code, which does not run on this client. (One line was removed from
+Slices 1 and 2 are done. **Do not deploy or tag before slice 3**: until then `Magely.lua` is the
+TBC code, which does not run on this client. (One line was removed from
 `Magely.lua` in slice 1: registering `COMBAT_LOG_EVENT_UNFILTERED` is a forbidden action here and
 would raise an error for every Mage who loaded it.)
+
+**Nobody working on this port has a Mage on Forever.** The in-game pass (slice 4) is handed to
+players and testers, as Wildly's was, and the release notes say no Magely build has been verified
+in game. What Magely shares with Priestly - the engine, the window, the settings path, the combat
+rules - is taken as measured by Priestly. What is Mage-specific stays listed as **unmeasured**
+until someone measures it: whether spell IDs 1459 / 23028 / 1008 / 604 and the spec spells
+resolve, the Amplify and Dampen durations, and the instance names beyond the ones Priestly checked.
 
 `H.NOT_YET_PORTED` in `tests/harness.lua` lists the files still on TBC code. The slice that ports a
 file removes it, and `test_bridge` fails while a listed file already uses `Magely.API`. Update this
@@ -91,7 +98,8 @@ window for it.**
   markers itself: Magely is the first host that does, and Priestly and Wildly still carry the
   hand-written check. It exposes `Magely.API`, `Magely.Settings`, `Magely.Engine`, `Magely.UI`,
   and `Magely.RegisterEvents`, which reports rejected events in chat. No API code lives here.
-- `MagelyConfig.lua` — options panel, defaults, instance list, exported config helpers.
+- `MagelyConfig.lua` — options panel, defaults, the Forever instance list, the Amplify / Dampen
+  modes, exported config helpers. See "Config" below.
 - `Magely.lua` — the host (once ported). Everything else is LibGroupBuffs:
   - `Engine.lua` is the buff logic (aura cache, roster, stats, targeting, click mapping,
     `UNIT_AURA` filtering).
@@ -144,6 +152,46 @@ Wildly's suites run against the working copy, merge, tag `r<MINOR>`. Then bump t
 Before calling something a gap, read `UI.lua`: `appearance()` already accepts a `title` (a spec
 coloured `|cffRRGGBBMagely|r`), though the library's `AGENTS.md` does not list it yet.
 
+## Config
+
+`MagelyConfig.lua` is `WildlyConfig.lua`'s shape with Priestly's instance machinery. There is **no
+class gate at file scope**: on any class but Mage its event frame does nothing - no options page,
+no `MagelyDB`, no chat, no instance check - and every accessor copes with `MagelyDB` being nil.
+
+It exposes, for `Magely.lua`: `Magely_EnsureDefaults`, `Magely_ShowSolo`, `Magely_TrackPets`,
+`Magely_IsBuffEnabled` (`intellect` / `amplify` / `dampen`), `Magely_GetBuffMode`,
+`Magely_ShouldShowBuff(defId, groups, ord)` (the engine's `isVisible`), `Magely_GetFrameAlpha`,
+`Magely_FrameLocked`, `Magely_ShowClickHints`, `Magely_PopoverSide`, `Magely_LearnDuration` /
+`Magely_GetLearnedDuration`, `Magely_OpenConfig`, the write paths `Magely_SetConfig(key, value)`
+and `Magely_SetInstance(which, name, tracked)`, their hook `Magely_OnConfigChanged(key)` (empty
+today), and `Magely_HandleEnteringWorld` / `Magely_CheckClientBuild`. It calls, guarded, the hooks
+`Magely.lua` defines: `Magely_ForceRebuild`, `Magely_OnSoloToggle`, `Magely_ApplyAlpha`.
+
+### Amplify and Dampen
+
+Each has its own mode, `always`, `detect` or `instance` (`amplifyMode`, `dampenMode`), and both
+rows can show at once. An unknown saved mode is repaired to `detect`.
+
+- **detect** reads every member through `API.ReadBuff` with the names `Magely.lua` publishes as
+  `Magely.auraNames[defId]`, resolved from spell IDs, so it works in every locale. A read that
+  combat blocks counts as detected: dropping the row at the pull would be worse. Before the names
+  are published nothing is detected.
+- **instance** looks up the instance the player stands in, in `amplifyInstances` /
+  `dampenInstances`. The check gates on `instanceType ~= "none"` (outdoors the name is the
+  continent), and reports an instance the list does not know once per session - only a dungeon or
+  raid, and only while one of the modes is `instance`.
+
+`INSTANCE_DB` is **Forever's** list, from Priestly's `INSTANCE_DB` (exact `GetInstanceInfo()`
+names), with an Amplify default and a Dampen default per instance. The TBC list is gone. Defaults
+are advice, not measurement: Amplify suits physical content, Dampen magic-heavy content; the TBC
+build's Vanilla opinions are kept where it had one, and Forever's own instances start unchecked.
+The saved maps are backfilled by `EnsureDefaults` and **never pruned**, and written one flag at a
+time through `Magely_SetInstance` (the library's `settings:SetIn`).
+
+Zoning (`PLAYER_ENTERING_WORLD`, `ZONE_CHANGED_NEW_AREA`) re-checks the instance and calls
+`Magely_ForceRebuild` - not a refresh, which does nothing for a window that closed for want of
+rows. `Magely.lua`'s ForceRebuild must never reopen a window the player closed.
+
 ## SavedVariables
 
 `MagelyDB` is **per character**; `MagelySVCheck` is account-wide and holds only the library's
@@ -152,17 +200,32 @@ and Wildly. The TBC addon kept `MagelyDB` account-wide; there is no migration, b
 separate install and nothing loads back on this client anyway.
 
 **NO SavedVariables load back on this client — per-character included** (measured on build
-1.60.1.69913; see Priestly's `AGENTS.md` and `docs/FOREVER-PROBE.md` section 11). Every session
-starts from defaults. Write the addon so losing every setting at login is survivable.
+1.60.1.69913 and re-checked on 69977; see Priestly's `AGENTS.md`, `docs/FOREVER-PROBE.md` section
+11, and the PORTING doc section 0). Every session starts from defaults. Write the addon so losing
+every setting at login is survivable.
+
+`MEASURED_ON_BUILD` and `SV_BROKEN_ON_BUILD` in `MagelyConfig.lua` are **69977**, the newest build
+both facts were checked on; Priestly and Wildly still carry 69913. `test_config_seam` pins them
+independently of the source, so bump the test with the constants after re-measuring - never to
+make it pass.
 
 - **Never verify persistence by reading the SV file or diffing it against `.bak`.** It always
   looks populated because `EnsureDefaults` rewrites every default each session. Count launches
   inside the addon, or check a key that defaults to nil (`pos`).
 - **Never with `/reload` alone.** `/reload` keeps the client process alive and can only prove
   something is broken. Confirm with a **full exit and relaunch**.
-- Once the config is ported: **every write to `MagelyDB` or `MagelySVCheck` goes through the
-  settings write path** (`Magely_SetConfig`, built on the library's `Settings.New`), except inside
-  `-- config-owner: begin/end` regions, which `tests/test_config_seam.lua` pins. **`svLoadCheck`
+- **Every write to `MagelyDB` or `MagelySVCheck` goes through the settings write path**
+  (`Magely_SetConfig` / `Magely_SetInstance`, built on the library's `Settings.New`), except
+  inside `-- config-owner: begin/end` regions in `MagelyConfig.lua` (three: the saved-table
+  accessors, `EnsureDefaults`, the learned-duration cache). `tests/test_config_seam.lua` scans
+  every ported file with the library's `tests/config_scan.lua` and pins the region count. Owner
+  code that writes through a local alias reports it with `settings:Changed(key)`.
+
+Current `MagelyDB` keys: `trackIntellect`, `trackAmplify`, `trackDampen`, `amplifyMode`,
+`dampenMode`, `showSolo`, `trackPets`, `frameAlpha`, `popoverSide`, `lockFrame`, `showClickHints`
+(all in `DEFAULTS`), `amplifyInstances` / `dampenInstances` (backfilled, never pruned),
+`learnedDurations` (keyed by **spell name**, reset when the client build changes), `visible` and
+`pos` (the window's own state, never defaulted), and `svLoadCheck` (never in `DEFAULTS`). **`svLoadCheck`
   must never be in `DEFAULTS`**: it detects Blizzard's fix by being written every session and never
   defaulted.
 

@@ -80,7 +80,6 @@ end
 -- removes it here; test_bridge fails while a listed file already uses
 -- Magely.API, so the list cannot outlive the port.
 H.NOT_YET_PORTED = {
-    ["MagelyConfig.lua"] = "the config, slice 2",
     ["Magely.lua"]       = "the host, slice 3",
 }
 

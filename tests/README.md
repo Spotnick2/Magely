@@ -47,12 +47,14 @@ or the sibling checkout. There is no vendored copy to fall back to, on purpose.
 |---|---|
 | `test_manifest.lua` | The TOC: interface 16001, per-character `MagelyDB` plus the account-wide `MagelySVCheck`, load order, and that the TOC path, `.pkgmeta` externals, pinned tag, `NEEDS_MINOR` and `.gitignore` agree. |
 | `test_bridge.lua` | `Magely.API` / `.Settings` / `.Engine` / `.UI` are the library's own tables; rejected events are printed in chat. The library's own `lib.Status` decides whether a copy is usable, and every answer reaches the player as the right message: missing, failed to load (including the real library with one file unfinished), and too old (naming both versions, never claiming a crash) - also for an older copy from before `Status` existed. Also scans every ported file: each `API.*` it uses exists, no library function is copied into a local, and events go only through `Magely.RegisterEvents`. |
+| `test_config.lua` | `MagelyDB` defaults (the cooldown-pane keys gone), the Amplify and Dampen modes each read back and repaired independently, the buff toggles, the Forever instance list (seeded, backfilled, never pruned, no TBC instances), the instance check (continent outdoors is not an instance; an unknown dungeon reported once, only to someone using "by instance"), detect mode through `API.ReadBuff` with a blocked read keeping the row, both rows at once, learned durations per spell name and client build, and the window's settings accessors. |
+| `test_config_seam.lua` | The one write path: `Magely_SetConfig` and `Magely_SetInstance` report through the hook, the library's `config_scan.lua` finds no direct `MagelyDB` write in any ported file, the owner regions are pinned, another class gets nothing (not even on zoning), and the SavedVariables-fix and new-build checks fire (or stay quiet) on the right logins. |
+| `test_options.lua` | Builds the options panel and clicks everything in it, with spies in place of the hooks `Magely.lua` defines: each checkbox, both mode radio groups independently, the popover side, the slider, both tabs, every instance's Amp and Damp box, Reset Defaults and the row tooltips; zoning re-checks the instance and asks for a rebuild; nothing needs the host loaded. |
 | `test_libfiles.lua` | The library's file list, read from its XML, and that `libfiles.lua` does not mistake a test for its own script mode. |
 | `test_stub.lua` | The stub entries Magely changed from the library's copy (`strsplit` keeping empty fields) keep the client's shape. |
 
-The config (`test_config`, `test_config_seam`, `test_options`) and host (`test_availability`,
-`test_clicks`, `test_frames`, `test_host`, `test_visibility`) tests arrive with the slices that
-port those files; see `AGENTS.md`, Port status.
+The host tests (`test_availability`, `test_clicks`, `test_frames`, `test_host`,
+`test_visibility`) arrive with the slice that ports `Magely.lua`; see `AGENTS.md`, Port status.
 
 ## The stub is an allowlist, and it must model absences
 
