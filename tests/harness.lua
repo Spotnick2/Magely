@@ -79,9 +79,7 @@ end
 -- loadAddon skips them and so do the scans. The slice that ports a file
 -- removes it here; test_bridge fails while a listed file already uses
 -- Magely.API, so the list cannot outlive the port.
-H.NOT_YET_PORTED = {
-    ["Magely.lua"]       = "the host, slice 3",
-}
+H.NOT_YET_PORTED = {}
 
 -- Everything the TOC loads that has been ported, in its order: the library,
 -- then Magely's files. Returns the test seams (nil until the file that sets
