@@ -37,7 +37,7 @@ build and date, when it is measured.
 | Arcane Brilliance is **23028** and reaches the whole raid, as Forever's Prayers do | Left-click and the per-subgroup rows (LibGroupBuffs #19) | Level 56 |
 | Arcane Powder is item **17020** and is Brilliance's reagent | The footer | Level 56 |
 | Arcane Power **12042**, Combustion **11129**, Ice Barrier **11426** are the 31-point talents | The spec look | Level 40+ |
-| Durations: Intellect 30 min, Brilliance 60 min, Amplify / Dampen 10 min - the TBC build's values, used as seeds only; the engine learns the real value per spell name | Timer colours before the first live read | Watch a bar go down; `/dump MagelyDB.learnedDurations` |
+| Durations. The seeds are Intellect 30 min and Amplify / Dampen 10 min (the TBC build's values). Brilliance shares Intellect's row, so until its own duration is learned its timer is scaled against 30 min too; it is expected to last 60 min. The engine learns every real value per spell name from the first live aura | Timer colours before the first live read | Watch a bar go down; `/dump MagelyDB.learnedDurations` |
 | A wired unit token handed to another player by a roster change mid-fight | A click can land on the wrong member until combat ends (known, unfixable - Priestly probe §14) | Reshuffle a raid in combat |
 | The instance names beyond the ones Priestly has stood in | Instance mode silently never fires on a misspelt key | Enter the instance with a mode on "by instance"; Magely reports an unknown name |
 
