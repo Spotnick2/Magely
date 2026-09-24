@@ -54,10 +54,8 @@ The port lands in slices, one issue and PR each:
 4. **In-game pass and v1.0.0.**
 5. **The cooldown pane**, after v1.0 (see below).
 
-Slices 1 and 2 are done. **Do not deploy or tag before slice 3**: until then `Magely.lua` is the
-TBC code, which does not run on this client. (One line was removed from
-`Magely.lua` in slice 1: registering `COMBAT_LOG_EVENT_UNFILTERED` is a forbidden action here and
-would raise an error for every Mage who loaded it.)
+Slices 1 to 3 are done: the addon is deployable, and the TBC window is gone. **Do not tag before
+slice 4.**
 
 **Nobody working on this port has a Mage on Forever.** The in-game pass (slice 4) is handed to
 players and testers, as Wildly's was, and the release notes say no Magely build has been verified
@@ -66,9 +64,8 @@ rules - is taken as measured by Priestly. What is Mage-specific stays listed as 
 until someone measures it: whether spell IDs 1459 / 23028 / 1008 / 604 and the spec spells
 resolve, the Amplify and Dampen durations, and the instance names beyond the ones Priestly checked.
 
-`H.NOT_YET_PORTED` in `tests/harness.lua` lists the files still on TBC code. The slice that ports a
-file removes it, and `test_bridge` fails while a listed file already uses `Magely.API`. Update this
-section as slices land, and delete it when the port is done.
+`H.NOT_YET_PORTED` in `tests/harness.lua` is empty. It stays, with the check in `test_bridge`, until
+this section is deleted. Update this section as slices land, and delete it when the port is done.
 
 ### The cooldown pane is not in v1.0
 
@@ -100,7 +97,9 @@ window for it.**
   and `Magely.RegisterEvents`, which reports rejected events in chat. No API code lives here.
 - `MagelyConfig.lua` — options panel, defaults, the Forever instance list, the Amplify / Dampen
   modes, exported config helpers. See "Config" below.
-- `Magely.lua` — the host (once ported). Everything else is LibGroupBuffs:
+- `Magely.lua` — `DEFS`, the visibility rule, the Arcane Powder footer item, the spec look,
+  event handling, slash commands and the test seam. See "The host" below. Everything else is
+  LibGroupBuffs:
   - `Engine.lua` is the buff logic (aura cache, roster, stats, targeting, click mapping,
     `UNIT_AURA` filtering).
   - `UI.lua` is the window (rows, popover, secure buttons, dragging, ticker, what combat defers).
@@ -151,6 +150,56 @@ Wildly's suites run against the working copy, merge, tag `r<MINOR>`. Then bump t
 
 Before calling something a gap, read `UI.lua`: `appearance()` already accepts a `title` (a spec
 coloured `|cffRRGGBBMagely|r`), though the library's `AGENTS.md` does not list it yet.
+
+## The host
+
+`Magely.lua` exposes, for the config: `Magely_ScheduleRefresh`, `Magely_ForceRebuild` (does nothing
+in combat for an open window - the library rebuilds it at combat end - and **never reopens a
+window the player closed**; it goes through `WantsOpen`), `Magely_OnSoloToggle`,
+`Magely_ApplyAlpha`, and `Magely.auraNames` (the Amplify and Dampen names, for detect mode). It
+decides when the window opens, exactly as Wildly does: at login for a Mage in a group (or solo
+mode) unless `visible` is false, or later when the spells arrive; on joining a group, overriding a
+close (but not the roster arriving just after login); never on other roster churn, a ready check,
+a settings change or a zone change over a close; nothing at all on another class, slash commands
+included (one line saying so). Its test seam is `Magely._test`.
+
+### Buff definitions
+
+`DEFS` are ID-based, the library's format: `id`, `snglID`, optional `grpID`, enUS `sngl` / `grp`
+fallbacks, `fallbackIcon`, a `duration` seed. Names are resolved from IDs at runtime by
+`engine:RefreshSpells()`, never the reverse.
+
+| id | snglID | grpID | Notes |
+|---|---|---|---|
+| `intellect` | 1459 Arcane Intellect | 23028 Arcane Brilliance | Left-click Brilliance when known, else Intellect. Always visible. |
+| `amplify` | 1008 Amplify Magic | — | Both clicks cast Amplify. Visible by its own mode. |
+| `dampen` | 604 Dampen Magic | — | Both clicks cast Dampen. Visible by its own mode. |
+
+The TBC flags `always`, `needsKnown`, `optional` and `leftUsesSingle` are **gone**. Availability is
+the engine's (a row exists only for a spell the Mage knows), a def with no `grpID` casts the single
+spell on both clicks, which is what `leftUsesSingle` did, and the engine's `isVisible(def, groups,
+ord)` asks `Magely_ShouldShowBuff` for Amplify and Dampen **one at a time**, so both rows can show
+at once. One behaviour change from TBC: Intellect used to show even when unknown (`always`); now,
+like every row, it needs the spell.
+
+### Reagent
+
+`footerItems()` shows **Arcane Powder** (17020) once Arcane Brilliance is known and the Intellect
+row is tracked, with the TBC build's count colours (50 / 25). Brilliance has one rank in Vanilla
+content, learned at 56, so there is one reagent.
+
+### Appearance
+
+`appearance()` returns the spec's icon, a **spec-coloured title** (`|cffRRGGBBMagely|r` - the
+library applies `look.title` on every rebuild, `UI.lua` `ApplyAppearance`), the header strip
+tinted towards the spec colour, and the header and footer lines; the border stays Magely's cyan
+`#3fc7eb`, and the popover keeps the library's colours, as the TBC build's did. Never fork `UI.lua`
+for a colour: if a colour has no key, that is a library gap.
+
+The spec comes from known spells, by ID, cached when spells change (never per rebuild): Arcane
+Power (12042) → Arcane, Combustion (11129) → Fire, Ice Barrier (11426) → Frost, else the plain Mage
+look. Icons and colours are the TBC build's. The talent-tab scan is gone on this client, and Summon
+Water Elemental is a TBC spell.
 
 ## Config
 

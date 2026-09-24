@@ -4,8 +4,8 @@
 
 > **Being ported.** Magely is moving from TBC Anniversary to WoW: Forever 1.60.1, on the shared
 > [LibGroupBuffs](https://github.com/Spotnick2/LibGroupBuffs) engine that Priestly and Wildly use.
-> The current `main` is mid-port and does not run in game yet. TBC Anniversary is no longer
-> supported.
+> The current `main` runs on Forever but has not been verified in game yet. TBC Anniversary is
+> no longer supported.
 
 It tracks:
 
