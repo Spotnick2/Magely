@@ -123,11 +123,14 @@ TOC path, the externals key, the tag, the floor and the ignore rule all agree.
 | `"ok"` | every file finished, active MINOR ≥ `NEEDS_MINOR` | nothing; starts |
 | `"incomplete"` | a file threw partway, or an older copy's record under a newer MINOR | failed to load completely |
 | `"too-old"` | complete, just behind | the version in use and the one needed - **never that it crashed** |
-| `Status` absent, MINOR < floor | another addon's copy from before `Status` existed (r11 or older) | too old, as above |
+| `Status` absent, MINOR < floor, its four named markers all equal its MINOR (or it is r2–r5, which predate them) | another addon's complete copy from before `Status` existed | too old, as above |
+| `Status` absent, MINOR < floor, a marker missing or older | that older copy threw partway | failed to load completely |
 | `Status` absent otherwise | the library's last file, which installs `Status`, threw | failed to load completely |
 
 Write the branches out: `a and f() or b` keeps only `f`'s first return, and would lose the MINOR
-the too-old message names.
+the too-old message names. Reading the named markers is allowed **only** for copies older than
+`Status`: those tags are released and frozen, so that list cannot drift. `test_bridge` checks it
+against the library's real r11 fixtures, whole and without `UI.lua`.
 
 ### A gap in a library seam
 

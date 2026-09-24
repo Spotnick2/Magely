@@ -31,11 +31,24 @@ if LibStub then lib, minor = LibStub("LibGroupBuffs-1.0", true) end
 -- same way (Spotnick2/priestly#52).
 --
 -- Status is installed by the library's LAST file, so its absence has two
--- meanings. An older copy that predates it (r11 or earlier, brought by
--- another addon while Magely's own is missing) is complete, just old - that
--- is "too-old", and nothing crashed. A copy at least as new as the floor
--- without it means its last file threw: "incomplete".
+-- meanings. A copy at least as new as the floor without it means its last
+-- file threw: "incomplete". An older copy that predates it (r11 or earlier,
+-- brought by another addon while Magely's own is missing) is too old - but
+-- it can ALSO be half-loaded, and incomplete wins, as it does in Status.
 --
+-- For those older copies only, the answer comes from the named markers they
+-- set on each file's last line. That is not the internals-copying Status
+-- replaced: the tags are released and never change, so this list cannot
+-- drift. r6 to r11 set all four; r2 to r5 predate them, cannot say whether
+-- they finished, and are too old whatever the answer.
+local LEGACY_MARKERS_FROM = 6
+
+local function LegacyComplete(l, m)
+    if m < LEGACY_MARKERS_FROM then return true end
+    return l.compatMinor == m and l.settingsMinor == m
+        and l.engineMinor == m and l.uiMinor == m
+end
+
 -- Written out branch by branch on purpose: `a and f() or b` keeps only the
 -- first value f returns, which would lose the active MINOR.
 local status, active
@@ -44,7 +57,8 @@ if not lib then
 elseif type(lib.Status) == "function" then
     status, active = lib.Status(NEEDS_MINOR)
 elseif type(minor) == "number" and minor < NEEDS_MINOR then
-    status, active = "too-old", minor
+    active = minor
+    status = LegacyComplete(lib, minor) and "too-old" or "incomplete"
 else
     status = "incomplete"
 end

@@ -198,14 +198,69 @@ loaded, err, chat = loadWithout(shaped(FLOOR, "something-new", FLOOR))
 H.check(not loaded, "a Status answer Magely does not know is refused, not trusted")
 H.check(chat:find("completely", 1, true), "and reported as a failed load: " .. chat)
 
--- No Status at all has two meanings. Another addon's older copy - r11 or
--- earlier, from before Status existed - is complete, just old: the player
--- must not be sent after a crash that did not happen.
-loaded, err, chat = loadWithout(shaped(FLOOR - 1, nil))
-H.check(not loaded, "an older copy without Status is refused")
+-- No Status at all, and older than the floor: another addon's copy from
+-- before Status existed (r11 or earlier). Complete, it is merely too old,
+-- and the player must not be sent after a crash that did not happen. But it
+-- can also be half-loaded, and then incomplete wins, as it does in Status:
+-- r6 to r11 record each file's finish in a named marker.
+local function legacy(minor, markers)
+    local l = { API = { RegisterEventsReported = function() return true end } }
+    for k, v in pairs(markers or {}) do l[k] = v end
+    return setmetatable({}, { __call = function() return l, minor end })
+end
+local function allMarkers(n)
+    return { compatMinor = n, settingsMinor = n, engineMinor = n, uiMinor = n }
+end
+
+loaded, err, chat = loadWithout(legacy(FLOOR - 1, allMarkers(FLOOR - 1)))
+H.check(not loaded, "a complete older copy without Status is refused")
 H.check(chat:find("r" .. (FLOOR - 1), 1, true) and chat:find("r" .. FLOOR, 1, true),
     "as too old, naming both versions: " .. chat)
 H.check(not chat:find("completely", 1, true), "not as a failed load: " .. chat)
+
+for _, key in ipairs({ "compatMinor", "settingsMinor", "engineMinor", "uiMinor" }) do
+    local m = allMarkers(FLOOR - 1)
+    m[key] = nil
+    loaded, err, chat = loadWithout(legacy(FLOOR - 1, m))
+    H.check(not loaded and chat:find("completely", 1, true),
+        "an older copy whose " .. key .. " never ran is reported as failing to load: " .. chat)
+    -- A still older copy's marker under the active MINOR: half a table.
+    m[key] = FLOOR - 2
+    loaded, err, chat = loadWithout(legacy(FLOOR - 1, m))
+    H.check(not loaded and chat:find("completely", 1, true),
+        "and so is one whose " .. key .. " is left from an even older copy: " .. chat)
+end
+
+-- r2 to r5 set no such markers, so nothing can say whether they finished;
+-- they are too old whatever the answer.
+loaded, err, chat = loadWithout(legacy(5, nil))
+H.check(not loaded and chat:find("r5", 1, true) and not chat:find("completely", 1, true),
+    "a copy from before the markers existed is simply too old: " .. chat)
+
+-- The same, against REAL released source rather than a fake: the library
+-- keeps every tag's runtime files as test fixtures. A fresh LibStub, then
+-- r11 as it shipped - whole, and with its last file missing.
+local function loadReleased(minor, files)
+    local root = H.libraryRoot()
+    LibStub = nil
+    dofile(root .. "/LibStub/LibStub.lua")
+    for _, name in ipairs(files) do
+        dofile(root .. "/tests/fixtures/" .. name .. "-r" .. minor .. ".lua")
+    end
+    local fresh = LibStub
+    return loadWithout(fresh)
+end
+
+loaded, err, chat = loadReleased(11, { "Compat", "Settings", "Engine", "UI" })
+H.check(not loaded, "the released r11, complete, is refused")
+H.check(chat:find("r11", 1, true) and chat:find("r" .. FLOOR, 1, true)
+    and not chat:find("completely", 1, true),
+    "as too old, naming both versions, not as a failed load: " .. chat)
+
+loaded, err, chat = loadReleased(11, { "Compat", "Settings", "Engine" })
+H.check(not loaded and chat:find("completely", 1, true),
+    "the released r11 without its UI.lua is reported as failing to load: " .. chat)
+LibStub = savedLibStub
 
 -- A copy at least as new as the floor without Status: its last file, which
 -- installs Status, threw.
