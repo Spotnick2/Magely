@@ -51,11 +51,15 @@ The port lands in slices, one issue and PR each:
    one Forever instance list with Amplify and Dampen flags.
 3. **Host** — `Magely.lua` becomes DEFS + engine + window + spec look + Arcane Powder footer +
    events; the hand-built TBC window, and the cooldown pane with it, is deleted, not ported.
-4. **In-game pass and v1.0.0.**
+4. **v1.0.0**, handed to testers for the in-game pass (below).
 5. **The cooldown pane**, after v1.0 (see below).
 
-Slices 1 to 3 are done: the addon is deployable, and the TBC window is gone. **Do not tag before
-slice 4.**
+Slices 1 to 4 are done and **v1.0.0 is the first Forever release. The in-game pass is NOT done**:
+there was no Mage available, so it was handed to players and testers - a deliberate exception to
+the rule under Validation, made by the owner and stated in the release notes. **No Magely build has
+been verified in game yet.** `docs/FOREVER-NOTES.md` separates what is measured (by Priestly, on
+the same library) from what is Mage-specific and unmeasured, and holds the testers' checklist.
+Record what is measured there, and delete this section once a pass has been done.
 
 **Nobody working on this port has a Mage on Forever.** The in-game pass (slice 4) is handed to
 players and testers, as Wildly's was, and the release notes say no Magely build has been verified
@@ -104,6 +108,7 @@ window for it.**
     `UNIT_AURA` filtering).
   - `UI.lua` is the window (rows, popover, secure buttons, dragging, ticker, what combat defers).
   A change to how buffs are read, targeted or drawn belongs in the library, not here.
+- `docs/FOREVER-NOTES.md` — what is measured and what is not, and the in-game checklist.
 - `tests/` — Lua 5.1 unit tests, no game client. See `tests/README.md`.
 - `Tools/deploy.ps1` — deploy to the local Forever AddOns folder, library included.
 - `.github/workflows/package-check.yml` — tests against the pinned library, a dry-run package, and
@@ -360,7 +365,10 @@ differences. Before stubbing a new global, confirm it exists in the newest
 never add one because a test failed. Strict globals do not cover **methods** — for anything built
 on a widget method, execute it and assert what it produced.
 
-In game — **nothing ships without this pass**, and not before slice 3:
+In game — **nothing ships without this pass**. The one exception so far is v1.0.0, which the owner
+released with the pass handed to testers because nobody on the port has a Mage (see Port status).
+Do not treat that as the rule: the next release after a Mage is available needs the pass. The
+checklist is in `docs/FOREVER-NOTES.md`:
 
 ```powershell
 pwsh Tools\deploy.ps1
