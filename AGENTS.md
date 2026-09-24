@@ -51,12 +51,13 @@ The port lands in slices, one issue and PR each:
    one Forever instance list with Amplify and Dampen flags.
 3. **Host** — `Magely.lua` becomes DEFS + engine + window + spec look + Arcane Powder footer +
    events; the hand-built TBC window, and the cooldown pane with it, is deleted, not ported.
-4. **In-game pass and v1.0.0.**
+4. **v1.0.0**, handed to testers for the in-game pass (below).
 5. **The cooldown pane**, after v1.0 (see below).
 
-Slices 1 to 4 are done and **v1.0.0 is the first Forever release**. The in-game pass had no Mage
-available, so it is handed to players and testers, and the release notes say so: **no Magely build
-has been verified in game yet.** `docs/FOREVER-NOTES.md` separates what is measured (by Priestly, on
+Slices 1 to 4 are done and **v1.0.0 is the first Forever release. The in-game pass is NOT done**:
+there was no Mage available, so it was handed to players and testers - a deliberate exception to
+the rule under Validation, made by the owner and stated in the release notes. **No Magely build has
+been verified in game yet.** `docs/FOREVER-NOTES.md` separates what is measured (by Priestly, on
 the same library) from what is Mage-specific and unmeasured, and holds the testers' checklist.
 Record what is measured there, and delete this section once a pass has been done.
 
@@ -364,8 +365,10 @@ differences. Before stubbing a new global, confirm it exists in the newest
 never add one because a test failed. Strict globals do not cover **methods** — for anything built
 on a widget method, execute it and assert what it produced.
 
-In game — **nothing ships without this pass**. Nobody on the port has a Mage, so for v1.0.0 it
-was handed to players (see Port status); the checklist is in `docs/FOREVER-NOTES.md`:
+In game — **nothing ships without this pass**. The one exception so far is v1.0.0, which the owner
+released with the pass handed to testers because nobody on the port has a Mage (see Port status).
+Do not treat that as the rule: the next release after a Mage is available needs the pass. The
+checklist is in `docs/FOREVER-NOTES.md`:
 
 ```powershell
 pwsh Tools\deploy.ps1

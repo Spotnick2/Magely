@@ -10,10 +10,11 @@ remains available on CurseForge.
 - **Your settings reset every time you reload.** This is a client bug that affects every addon:
   Forever saves addon settings and never reads them back. It has been reported to Blizzard, and
   Magely says so in chat once a game update fixes it.
-- **Not yet played on a mage by its author.** Everything is covered by automated tests, and the
-  same engine and window run Priestly in game today, but this build has not been through a
-  hands-on pass. If something looks wrong, please report it, and type `/console scriptErrors 1` to
-  see errors the client otherwise hides.
+- **Not yet played on a mage by its author.** The code has an offline test suite, and the same
+  engine and window run Priestly in game today, but this build has not been through a hands-on
+  pass: whether the Mage spells are recognised, how long they last on Forever, and the instance
+  names are still to be confirmed in game. If something looks wrong, please report it, and type
+  `/console scriptErrors 1` to see errors the client otherwise hides.
 - **The cooldown request pane is gone for now.** The TBC version could track Innervate and Power
   Infusion and whisper a request. Forever does not let addons read the combat log, which the pane
   relied on, and neither spell exists at the current level cap. It is planned to come back once it
@@ -47,7 +48,8 @@ remains available on CurseForge.
 - **Clicks work whether your client acts on key down or key up.**
 - **Closing the window in a fight** now says it closes when combat ends, and does, instead of
   failing silently.
-- **Magely stays out of the way on other classes:** no window, no options page, no chat messages.
+- **Magely stays out of the way on other classes:** no window, no options page and no chat
+  messages - `/magely` answers with one line saying what Magely is for.
 
 ## v0.1 - 2026-05-16
 

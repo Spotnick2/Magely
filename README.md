@@ -47,7 +47,8 @@ three.
 /magely help     full command and click reference
 ```
 
-The window opens on its own when you join a group. Magely does nothing on other classes.
+The window opens on its own when you join a group. On other classes Magely shows nothing and
+says nothing, unless you type `/magely`, which answers with one line.
 
 **Row colours:** green = everyone has it · yellow = some missing · red = nobody has it ·
 grey `?` = buff state cannot be read right now (the client hides aura data during combat, so
@@ -87,8 +88,9 @@ catch up:
 * **Forever's own instances are not catalogued yet**, so they start unchecked in the instance
   list. If you use "by instance" and enter one the list does not know at all, Magely says so -
   please report the name.
-* **Buff durations differ from both TBC and Vanilla** and are still being tuned. Magely learns the
-  real duration from live buffs rather than assuming one, and forgets what it learned whenever the
+* **Mage buff durations have not been measured on Forever yet**, and Forever's durations have
+  already turned out to differ from both TBC and Vanilla for other classes. Magely learns the real
+  duration from live buffs rather than assuming one, and forgets what it learned whenever the
   client build changes.
 * **Your settings reset every time you reload.** This is a client bug and it affects every addon:
   Forever writes addon settings to disk correctly and then never reads them back at login. So the

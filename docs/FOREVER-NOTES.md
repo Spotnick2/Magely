@@ -15,7 +15,8 @@ in game. The measurements are in `C:\Projects\Priestly\docs\FOREVER-PROBE.md` an
 
 | Behaviour | Where it was measured |
 |---|---|
-| Secure buttons cast on both mouse edges, in and out of combat, on self and a party member | Priestly probe §1 |
+| Secure buttons cast on self and a party member, both buttons, registering both mouse edges | Priestly probe §1 |
+| ...and still cast during a fight, on the wiring made before it | Priestly probe §14 (measured 2026-09-22; §1's "still to confirm" predates it) |
 | Auras are unreadable in combat for every unit; the engine's cache and `?` state | Priestly probe §9 |
 | A frame parenting secure buttons cannot be hidden or moved in combat; the window defers | Priestly probe §13 |
 | `GetUnitName(unit, false)` for surnames; GUID-keyed identity | Priestly probe §4 |
@@ -36,7 +37,8 @@ build and date, when it is measured.
 | Arcane Brilliance is **23028** and reaches the whole raid, as Forever's Prayers do | Left-click and the per-subgroup rows (LibGroupBuffs #19) | Level 56 |
 | Arcane Powder is item **17020** and is Brilliance's reagent | The footer | Level 56 |
 | Arcane Power **12042**, Combustion **11129**, Ice Barrier **11426** are the 31-point talents | The spec look | Level 40+ |
-| Durations: Intellect 30 min, Amplify / Dampen 10 min (seeds only - the engine learns the real value) | Timer colours before the first live read | Watch a bar go down; `/dump MagelyDB.learnedDurations` |
+| Durations: Intellect 30 min, Brilliance 60 min, Amplify / Dampen 10 min - the TBC build's values, used as seeds only; the engine learns the real value per spell name | Timer colours before the first live read | Watch a bar go down; `/dump MagelyDB.learnedDurations` |
+| A wired unit token handed to another player by a roster change mid-fight | A click can land on the wrong member until combat ends (known, unfixable - Priestly probe §14) | Reshuffle a raid in combat |
 | The instance names beyond the ones Priestly has stood in | Instance mode silently never fires on a misspelt key | Enter the instance with a mode on "by instance"; Magely reports an unknown name |
 
 ## In-game checklist for testers
