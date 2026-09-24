@@ -1704,7 +1704,6 @@ evtFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 evtFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 evtFrame:RegisterEvent("BAG_UPDATE")
 evtFrame:RegisterEvent("SPELLS_CHANGED")
-evtFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 evtFrame:RegisterEvent("INSPECT_READY")
 evtFrame:RegisterEvent("CHAT_MSG_ADDON")
 

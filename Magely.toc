@@ -1,11 +1,14 @@
-## Interface: 20505
-## Title: |cff3fc7ebMagely|r
-## Notes: Pally Power-style Mage buff manager. Auto-opens on group join. /magely help
+## Interface: 16001
+## Title: |cff3fc7ebMagely|r Forever
+## Notes: Pally Power-style Mage buff manager for WoW: Forever. Auto-opens on group join. /magely help
 ## Author: Spotnick
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Spell_Holy_ArcaneIntellect
-## SavedVariables: MagelyDB
+## SavedVariablesPerCharacter: MagelyDB
+## SavedVariables: MagelySVCheck
 ## X-Curse-Project-ID: 1545112
 
+Libs\LibGroupBuffs-1.0\LibGroupBuffs-1.0.xml
+MagelyCompat.lua
 MagelyConfig.lua
 Magely.lua

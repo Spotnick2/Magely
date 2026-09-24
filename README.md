@@ -1,61 +1,41 @@
-# Magely
+# Magely Forever
 
-**Magely** is a mage-focused buff manager addon for *World of Warcraft: TBC Anniversary*, inspired by the Priestly/Wildly workflow.
+**Magely** is a PallyPower-style Mage buff manager for **World of Warcraft: Forever**.
+
+> **Being ported.** Magely is moving from TBC Anniversary to WoW: Forever 1.60.1, on the shared
+> [LibGroupBuffs](https://github.com/Spotnick2/LibGroupBuffs) engine that Priestly and Wildly use.
+> The current `main` is mid-port and does not run in game yet. TBC Anniversary is no longer
+> supported.
 
 It tracks:
 
 - Arcane Intellect / Arcane Brilliance
-- Amplify Magic (optional, mode-based)
-- Dampen Magic (optional, mode-based)
-- Optional second pane for Innervate and Power Infusion request tracking
+- Amplify Magic (optional: always, when detected on a group member, or by instance)
+- Dampen Magic (optional, same modes)
+
+The TBC version's cooldown request pane (Innervate and Power Infusion) is not part of the first
+Forever release: this client does not let addons read the combat log, and neither spell exists at
+the current level cap. It is planned to return later.
 
 ## Usage
 
 ```text
 /magely help
-```
-
-Open settings:
-
-```text
 /magely config
 ```
 
-## Features
-
-- Compact group/raid buff rows with secure click-casting
-- Spec-aware mage header styling for Arcane, Fire, and Frost
-- Optional encounter-aware visibility modes for Amplify/Dampen
-- Optional cooldown request pane:
-  - Innervate tracking (with debug override)
-  - Power Infusion tracking
-  - Click row to whisper the provider
-
 ## Installation
 
-### Manual
+Install from CurseForge, which bundles LibGroupBuffs. A manual install goes into:
 
-1. Place the `Magely` folder into:
+```text
+C:\Program Files (x86)\World of Warcraft\_classic_beta_\Interface\AddOns\Magely\
+```
 
-   ```text
-   C:\Program Files (x86)\World of Warcraft\_anniversary_\Interface\AddOns\
-   ```
-
-2. Ensure the final path is:
-
-   ```text
-   ...\AddOns\Magely\
-   ```
-
-3. After each deployment/update, run:
-
-   ```text
-   /reload
-   ```
-
-Relog is only a fallback if the client does not detect a brand-new addon folder in the current session.
+Developers: see `AGENTS.md`; `pwsh Tools/deploy.ps1` deploys with the library from a
+`../LibGroupBuffs` checkout.
 
 ## Supported Version
 
-- World of Warcraft: TBC Anniversary
-- Interface: `20505`
+- World of Warcraft: Forever 1.60.1
+- Interface: `16001`
