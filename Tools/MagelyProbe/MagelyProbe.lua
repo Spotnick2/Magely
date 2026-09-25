@@ -19,9 +19,8 @@
 --   /mprobe report              everything recorded so far
 --   /mprobe reset               forget it
 --
--- Results are printed and kept in MagelyProbeDB. SavedVariables never load
--- back on this client, but they ARE written: after /reload (or logout) the
--- file is at _classic_beta_\WTF\Account\<id>\SavedVariables\MagelyProbe.lua.
+-- Results are printed and kept in MagelyProbeDB, which is written on /reload
+-- (or logout) to _classic_beta_\WTF\Account\<id>\SavedVariables\MagelyProbe.lua.
 -- Copy the answers into docs/FOREVER-NOTES.md.
 --
 -- Every client global is read with rawget, so an API this client lacks is
@@ -47,7 +46,8 @@ end
 -- call through it, and tests reach the frames to model a client refusal.
 MagelyProbe = {}
 
--- Fresh every session on purpose: nothing loads back on this build anyway.
+-- Fresh every session on purpose: a measurement belongs to the session - and
+-- the build - it was taken in, so an older run's answers must not carry over.
 MagelyProbeDB = { build = nil, results = {}, casts = {}, samples = {}, blocked = {} }
 local DB = MagelyProbeDB
 

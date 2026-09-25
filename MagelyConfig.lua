@@ -60,8 +60,9 @@ local DEFAULTS = {
 -- and keeps the learned-duration cache. Everything else calls the setter.
 
 -- Which build the notes Magely relies on were measured on, and the build where
--- SavedVariables are measured broken. In the SOURCE, because it is the one
--- thing that survives a restart here. Bump MEASURED_ON_BUILD after
+-- SavedVariables are measured broken. In the SOURCE, because through 69977 it
+-- was the one thing that survived a restart, and it is still the one thing no
+-- client bug can lose. Bump MEASURED_ON_BUILD after
 -- re-measuring (AGENTS.md); the library warns at every real login until then.
 --
 -- MEASURED_ON_BUILD is 70009: Priestly re-measured it (Spotnick2/priestly#60)
