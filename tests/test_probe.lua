@@ -348,6 +348,64 @@ rawset(_G, "CanInspect", nil)
 rawset(_G, "NotifyInspect", nil)
 
 ------------------------------------------------------------
+-- The inspected spec by name, and whether talents live in traits
+--
+-- Measured on 70009: GetInspectSpecialization answered 1486, and
+-- GetTalentInfo answered nothing in any shape. The probe names the spec and
+-- asks whether an active trait config exists.
+------------------------------------------------------------
+
+rawset(_G, "C_SpecializationInfo", {
+    GetTalentInfo = function() return nil end,
+    GetInspectSpecialization = function() return 1486 end,
+})
+rawset(_G, "CanInspect", function(u) return true end)
+rawset(_G, "NotifyInspect", function() end)
+WoW.SetUnit("target", { name = "Zoruka Mortalis", guid = "T1", class = "PRIEST" })
+
+-- Neither lookup present: recorded as missing, nothing crashes.
+rawset(_G, "GetSpecializationInfoByID", nil)
+rawset(_G, "C_ClassTalents", nil)
+H.check(pcall(slash, "inspect"), "inspect runs with no traits API")
+H.eq(result("C_ClassTalents.GetActiveConfigID"), "missing", "the traits config lookup is recorded as missing")
+H.check(pcall(P.OnInspectReady, "T1"), "and INSPECT_READY with no spec lookup")
+H.eq(result("GetInspectSpecialization(target)"), "1486", "the spec ID is recorded")
+H.eq(result("inspected spec by ID"), "GetSpecializationInfoByID missing", "and the missing lookup too")
+
+-- Both present.
+rawset(_G, "GetSpecializationInfoByID", function(id)
+    if id == 1486 then return 1486, "Holy", "Heals.", 12345, "HEALER" end
+end)
+rawset(_G, "C_ClassTalents", { GetActiveConfigID = function() return 7 end })
+rawset(_G, "C_Traits", { GetConfigInfo = function(id)
+    return { name = "Loadout", type = 1, treeIDs = { 101, 102, 103 } }
+end })
+H.check(pcall(slash, "inspect"), "inspect runs with the traits API")
+H.eq(result("C_ClassTalents.GetActiveConfigID"), "7; GetConfigInfo: name=Loadout type=1 trees=3",
+    "an active config is recorded with what it holds")
+H.check(pcall(P.OnInspectReady, "T1"), "INSPECT_READY with the spec lookup")
+H.eq(result("inspected spec by ID"), "1486 = Holy (role HEALER)", "the spec is named, with its role")
+
+-- No config, a throwing lookup, and a secret spec ID: each recorded, none fatal.
+rawset(_G, "C_ClassTalents", { GetActiveConfigID = function() return nil end })
+H.check(pcall(slash, "inspect"), "inspect with no active config")
+H.eq(result("C_ClassTalents.GetActiveConfigID"), "nil (no active talent config)", "says there is none")
+rawset(_G, "C_ClassTalents", { GetActiveConfigID = function() error("not here") end })
+H.check(pcall(slash, "inspect"), "inspect with a throwing config lookup")
+H.check((result("C_ClassTalents.GetActiveConfigID") or ""):find("threw", 1, true), "records it as thrown")
+local secretSpec = coroutine.create(function() end)
+rawset(_G, "C_SpecializationInfo", { GetTalentInfo = function() return nil end,
+    GetInspectSpecialization = function() return secretSpec end })
+rawset(_G, "GetSpecializationInfoByID", function(id) return id + 0 end)
+H.check(pcall(P.OnInspectReady, "T1"), "a secret spec ID does not crash INSPECT_READY")
+H.check((result("inspected spec by ID") or ""):find("threw", 1, true),
+    "and its lookup is recorded as thrown: " .. tostring(result("inspected spec by ID")))
+for _, name in ipairs({ "C_SpecializationInfo", "GetSpecializationInfoByID", "C_ClassTalents", "C_Traits",
+                        "CanInspect", "NotifyInspect" }) do
+    rawset(_G, name, nil)
+end
+
+------------------------------------------------------------
 -- Report and reset
 ------------------------------------------------------------
 

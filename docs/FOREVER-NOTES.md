@@ -50,16 +50,17 @@ Build **70009**, 2026-09-25, on a non-Mage (so every spell reads `known=false`, 
 |---|---|
 | Do the IDs resolve by ID? | **Yes, all of them, with the right names**: 1459 Arcane Intellect, 23028 Arcane Brilliance, 1008 Amplify Magic, 604 Dampen Magic, 12042 Arcane Power, 11129 Combustion, 11426 Ice Barrier, 29166 Innervate, 10060 Power Infusion. Item 17020 (Arcane Powder) has icon **133848**. |
 | Can a plain frame anchored under a protected one be changed **in combat**? | **Yes, all of it.** SetHeight, re-anchor, Hide and Show all took effect with no blocked event. The control - Hide on the frame parenting a secure button - was refused: `ADDON_ACTION_BLOCKED: Frame:Hide() blamed on MagelyProbe`. So a cooldown pane under the window can live its own life in combat (LibGroupBuffs #24). |
-| `C_SpecializationInfo.GetTalentInfo`, own talents | `{ specializationIndex, talentIndex }` **throws**: *"query.tier must be specified"*. `{ tier, column }` (tiers 1-10, columns 1-4): **0 hits, 0 errors**. The probe now also tries `{ specializationIndex, tier, column }`. Not yet run. |
+| `C_SpecializationInfo.GetTalentInfo` | **Answers nothing in any shape**, for your own talents and an inspected target alike: `{ specializationIndex, talentIndex }` **throws** *"query.tier must be specified"*; `{ tier, column }` (tiers 1-10 x columns 1-4) and `{ specializationIndex, tier, column }` (3 trees x 10 x 4) give **0 hits, 0 errors**. So Power Infusion cannot be found through it. The probe now asks whether Retail's traits system holds the talents instead (`C_ClassTalents.GetActiveConfigID`, `C_Traits.GetConfigInfo`). Second run, 2026-09-25. |
+| Inspection | **Works.** `CanInspect(target)` true, `NotifyInspect` sent, and `INSPECT_READY` arrived for the requested target a second later. `GetInspectSpecialization(target)` answered **1486** - no Retail spec ID; the probe now names it with `GetSpecializationInfoByID`. |
+| A WHISPER to a surnamed name | **Routed.** `C_ChatInfo.SendChatMessage(..., "WHISPER", nil, "Karuzo Elegia")` was accepted and echoed as `[W To] [Karuzo Elegia]`, with no "No player named" error - so the server resolved the two-word name. (The recipient's side was not reported.) |
 
 Not answered yet, and why:
 - **Group casts** (`/mprobe cast on`): `UNIT_SPELLCAST_SUCCEEDED` **registers** (measured: true).
   Whether it is delivered for party members, and whether `spellID` is readable in combat, is not
-  answered: nobody cast while it was watching - a party member chatting is not a cast.
-- **Whisper to a surname**: the usage example "First Surname" was sent literally. The server's reply
-  ("No player named 'First Surname'...") shows the call does reach it; a real two-word name is
-  still to try.
-- **Inspection**: no target.
+  answered: on the first run nobody cast while it was watching (a party member chatting is not a
+  cast), and the second run's report was not captured. Run `/mprobe report` after people have cast.
+- **Whisper to a surname** and **inspection**: answered on the second run, above.
+- **Talents**: `GetTalentInfo` answers nothing; whether the traits system does is the next run.
 
 ## Build 70009
 

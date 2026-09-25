@@ -391,6 +391,38 @@ local function QueryTalents(isInspect, unit)
     end
 end
 
+-- A specialization ID, by name. Measured on 70009: GetInspectSpecialization
+-- answers 1486 for a target, which is no Retail spec ID - so ask the client
+-- what it is rather than guess.
+local function RecordSpecName(who, spec)
+    local byID = G("GetSpecializationInfoByID")
+    if not byID then Record(who .. " spec by ID", "GetSpecializationInfoByID missing") return end
+    local ok, text = pcall(function()
+        local id, name, _, _, role = byID(spec)
+        return string.format("%s = %s (role %s)", tostring(id), tostring(name), tostring(role))
+    end)
+    Record(who .. " spec by ID", ok and text or ("threw: " .. tostring(text)))
+end
+
+-- Measured on 70009: C_SpecializationInfo.GetTalentInfo answers nothing in
+-- any shape, even for your own talents. Forever may keep talents in Retail's
+-- traits system instead; the first question is whether there is a config.
+local function RecordTraitConfig()
+    local CT, TR = G("C_ClassTalents"), G("C_Traits")
+    if not (CT and CT.GetActiveConfigID) then
+        Record("C_ClassTalents.GetActiveConfigID", "missing") return
+    end
+    local ok, text = pcall(function()
+        local id = CT.GetActiveConfigID()
+        if id == nil then return "nil (no active talent config)" end
+        local info = TR and TR.GetConfigInfo and TR.GetConfigInfo(id)
+        return string.format("%s; GetConfigInfo: name=%s type=%s trees=%s", tostring(id),
+            tostring(info and info.name), tostring(info and info.type),
+            tostring(info and info.treeIDs and #info.treeIDs))
+    end)
+    Record("C_ClassTalents.GetActiveConfigID", ok and text or ("threw: " .. tostring(text)))
+end
+
 local IGNORED = "INSPECT_READY ignored (not the requested unit)"
 
 function MagelyProbe.OnInspectReady(guid)
@@ -411,8 +443,11 @@ function MagelyProbe.OnInspectReady(guid)
         QueryTalents(true, "target")
         local CSI = G("C_SpecializationInfo")
         if CSI and CSI.GetInspectSpecialization then
-            local okS, spec = pcall(function() return tostring(CSI.GetInspectSpecialization("target")) end)
-            Record("GetInspectSpecialization(target)", okS and spec or ("threw: " .. tostring(spec)))
+            local okS, spec = pcall(CSI.GetInspectSpecialization, "target")
+            local okT, text = pcall(tostring, spec)
+            Record("GetInspectSpecialization(target)",
+                (okS and okT) and text or ("threw: " .. tostring(okS and text or spec)))
+            if okS then RecordSpecName("inspected", spec) end
         end
     end
     local clear = G("ClearInspectPlayer")
@@ -424,6 +459,7 @@ local function Inspect()
     -- Your own talents first, as the control: if these read nothing, neither
     -- shape addresses a Vanilla tree at all.
     QueryTalents(false, nil)
+    RecordTraitConfig()
     if not (UE and UE("target")) then Say("target someone with talents and run it again") return end
     if not (CanI and Notify) then
         Record("inspect", string.format("CanInspect %s, NotifyInspect %s",
