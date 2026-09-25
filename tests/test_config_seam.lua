@@ -215,7 +215,7 @@ local function freshSession(build)
     Magely_EnsureDefaults()
 end
 
--- Today, broken build, nothing loaded: nothing announced, markers written.
+-- On the broken build (69977), nothing loaded: nothing announced, markers written.
 freshSession(BROKEN)
 local before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
