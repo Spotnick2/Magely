@@ -393,10 +393,12 @@ end
 
 -- A specialization ID, by name. Measured on 70009: GetInspectSpecialization
 -- answers 1486 for a target, which is no Retail spec ID - so ask the client
--- what it is rather than guess.
+-- what it is rather than guess. Through GetSpecializationInfoForSpecID, the
+-- one the 70009 dump documents with its return order (id, name, description,
+-- icon, role, ...); GetSpecializationInfoByID is only in its names-only list.
 local function RecordSpecName(who, spec)
-    local byID = G("GetSpecializationInfoByID")
-    if not byID then Record(who .. " spec by ID", "GetSpecializationInfoByID missing") return end
+    local byID = G("GetSpecializationInfoForSpecID")
+    if not byID then Record(who .. " spec by ID", "GetSpecializationInfoForSpecID missing") return end
     local ok, text = pcall(function()
         local id, name, _, _, role = byID(spec)
         return string.format("%s = %s (role %s)", tostring(id), tostring(name), tostring(role))
@@ -412,13 +414,18 @@ local function RecordTraitConfig()
     if not (CT and CT.GetActiveConfigID) then
         Record("C_ClassTalents.GetActiveConfigID", "missing") return
     end
+    -- A missing function, a nil answer and a config with empty fields are
+    -- three different findings, and must not read alike.
     local ok, text = pcall(function()
         local id = CT.GetActiveConfigID()
         if id == nil then return "nil (no active talent config)" end
-        local info = TR and TR.GetConfigInfo and TR.GetConfigInfo(id)
-        return string.format("%s; GetConfigInfo: name=%s type=%s trees=%s", tostring(id),
-            tostring(info and info.name), tostring(info and info.type),
-            tostring(info and info.treeIDs and #info.treeIDs))
+        local head = tostring(id) .. "; "
+        if not (TR and TR.GetConfigInfo) then return head .. "C_Traits.GetConfigInfo missing" end
+        local info = TR.GetConfigInfo(id)
+        if info == nil then return head .. "GetConfigInfo answered nil" end
+        return head .. string.format("GetConfigInfo: name=%s type=%s trees=%s",
+            tostring(info.name), tostring(info.type),
+            tostring(type(info.treeIDs) == "table" and #info.treeIDs or info.treeIDs))
     end)
     Record("C_ClassTalents.GetActiveConfigID", ok and text or ("threw: " .. tostring(text)))
 end

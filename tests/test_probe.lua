@@ -364,25 +364,39 @@ rawset(_G, "NotifyInspect", function() end)
 WoW.SetUnit("target", { name = "Zoruka Mortalis", guid = "T1", class = "PRIEST" })
 
 -- Neither lookup present: recorded as missing, nothing crashes.
-rawset(_G, "GetSpecializationInfoByID", nil)
+rawset(_G, "GetSpecializationInfoForSpecID", nil)
 rawset(_G, "C_ClassTalents", nil)
 H.check(pcall(slash, "inspect"), "inspect runs with no traits API")
 H.eq(result("C_ClassTalents.GetActiveConfigID"), "missing", "the traits config lookup is recorded as missing")
 H.check(pcall(P.OnInspectReady, "T1"), "and INSPECT_READY with no spec lookup")
 H.eq(result("GetInspectSpecialization(target)"), "1486", "the spec ID is recorded")
-H.eq(result("inspected spec by ID"), "GetSpecializationInfoByID missing", "and the missing lookup too")
+H.eq(result("inspected spec by ID"), "GetSpecializationInfoForSpecID missing", "and the missing lookup too")
 
 -- Both present.
-rawset(_G, "GetSpecializationInfoByID", function(id)
+-- The documented tuple, 70009 dump: id, name, description, icon, role, ...
+rawset(_G, "GetSpecializationInfoForSpecID", function(id)
     if id == 1486 then return 1486, "Holy", "Heals.", 12345, "HEALER" end
 end)
 rawset(_G, "C_ClassTalents", { GetActiveConfigID = function() return 7 end })
+local askedConfig
 rawset(_G, "C_Traits", { GetConfigInfo = function(id)
+    askedConfig = id
     return { name = "Loadout", type = 1, treeIDs = { 101, 102, 103 } }
 end })
 H.check(pcall(slash, "inspect"), "inspect runs with the traits API")
 H.eq(result("C_ClassTalents.GetActiveConfigID"), "7; GetConfigInfo: name=Loadout type=1 trees=3",
     "an active config is recorded with what it holds")
+H.eq(askedConfig, 7, "asking C_Traits about the active config's own ID")
+
+-- The namespace there, the system not wired: each case reads differently.
+rawset(_G, "C_Traits", { GetConfigInfo = function() return nil end })
+H.check(pcall(slash, "inspect"), "inspect with GetConfigInfo answering nil")
+H.eq(result("C_ClassTalents.GetActiveConfigID"), "7; GetConfigInfo answered nil",
+    "a nil answer is not a config with empty fields")
+rawset(_G, "C_Traits", nil)
+H.check(pcall(slash, "inspect"), "inspect with no C_Traits")
+H.eq(result("C_ClassTalents.GetActiveConfigID"), "7; C_Traits.GetConfigInfo missing",
+    "and a missing function says so")
 H.check(pcall(P.OnInspectReady, "T1"), "INSPECT_READY with the spec lookup")
 H.eq(result("inspected spec by ID"), "1486 = Holy (role HEALER)", "the spec is named, with its role")
 
@@ -396,11 +410,11 @@ H.check((result("C_ClassTalents.GetActiveConfigID") or ""):find("threw", 1, true
 local secretSpec = coroutine.create(function() end)
 rawset(_G, "C_SpecializationInfo", { GetTalentInfo = function() return nil end,
     GetInspectSpecialization = function() return secretSpec end })
-rawset(_G, "GetSpecializationInfoByID", function(id) return id + 0 end)
+rawset(_G, "GetSpecializationInfoForSpecID", function(id) return id + 0 end)
 H.check(pcall(P.OnInspectReady, "T1"), "a secret spec ID does not crash INSPECT_READY")
 H.check((result("inspected spec by ID") or ""):find("threw", 1, true),
     "and its lookup is recorded as thrown: " .. tostring(result("inspected spec by ID")))
-for _, name in ipairs({ "C_SpecializationInfo", "GetSpecializationInfoByID", "C_ClassTalents", "C_Traits",
+for _, name in ipairs({ "C_SpecializationInfo", "GetSpecializationInfoForSpecID", "C_ClassTalents", "C_Traits",
                         "CanInspect", "NotifyInspect" }) do
     rawset(_G, name, nil)
 end
