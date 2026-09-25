@@ -53,7 +53,9 @@ Build **70009**, 2026-09-25, on a non-Mage (so every spell reads `known=false`, 
 | `C_SpecializationInfo.GetTalentInfo`, own talents | `{ specializationIndex, talentIndex }` **throws**: *"query.tier must be specified"*. `{ tier, column }` (tiers 1-10, columns 1-4): **0 hits, 0 errors**. The probe now also tries `{ specializationIndex, tier, column }`. Not yet run. |
 
 Not answered yet, and why:
-- **Group casts** (`/mprobe cast on`): nobody cast while it was watching - a party member chatting is not a cast.
+- **Group casts** (`/mprobe cast on`): `UNIT_SPELLCAST_SUCCEEDED` **registers** (measured: true).
+  Whether it is delivered for party members, and whether `spellID` is readable in combat, is not
+  answered: nobody cast while it was watching - a party member chatting is not a cast.
 - **Whisper to a surname**: the usage example "First Surname" was sent literally. The server's reply
   ("No player named 'First Surname'...") shows the call does reach it; a real two-word name is
   still to try.

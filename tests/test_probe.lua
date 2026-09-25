@@ -288,9 +288,11 @@ H.eq(result("GetInspectSpecialization(target)"), "0", "the inspect specializatio
 -- The client as measured on 70009: a query without a tier throws, and a
 -- tier without the tree finds nothing. If the tree is what was missing, the
 -- third shape is the one that answers.
+local treeQueries = {}
 rawset(_G, "C_SpecializationInfo", {
     GetTalentInfo = function(q)
         if not q.tier then error("GetTalentInfo(): query.tier must be specified.") end
+        if q.specializationIndex then treeQueries[#treeQueries + 1] = q end
         if q.specializationIndex and q.tier <= 2 then
             return { name = "Tree " .. q.specializationIndex .. " t" .. q.tier .. "c" .. q.column,
                      rank = 0, maxRank = 5 }
@@ -305,7 +307,26 @@ H.check((result("own talents by tier/column") or ""):find("0 hits, 0 errors", 1,
     "tier/column alone finds nothing, as measured")
 local three = result("own talents by specializationIndex/tier/column") or ""
 H.check(three:find("24 hits", 1, true) and three:find("Tree 1 t1c1", 1, true),
-    "and the tree plus tier and column is walked in full, with examples: " .. three)
+    "and the tree plus tier and column answers, with examples: " .. three)
+-- A count of hits cannot show the walk is complete: always asking tree 1, or
+-- column 1, would hit just as often here. Every (tree, tier, column) must be
+-- asked exactly once, as the player's own talents.
+local seenCombo, dupes, wrongContext = {}, 0, 0
+for _, q in ipairs(treeQueries) do
+    local key = q.specializationIndex .. "/" .. q.tier .. "/" .. q.column
+    if seenCombo[key] then dupes = dupes + 1 end
+    seenCombo[key] = true
+    if q.isInspect ~= false or q.target ~= nil then wrongContext = wrongContext + 1 end
+end
+local missing = {}
+for tree = 1, 3 do for tier = 1, 10 do for col = 1, 4 do
+    local key = tree .. "/" .. tier .. "/" .. col
+    if not seenCombo[key] then missing[#missing + 1] = key end
+end end end
+H.eq(#treeQueries, 120, "3 trees x 10 tiers x 4 columns are asked")
+H.eq(#missing, 0, "every combination, none skipped: " .. table.concat(missing, " "))
+H.eq(dupes, 0, "and none twice")
+H.eq(wrongContext, 0, "all as the player's own talents, not an inspection")
 
 -- A GetTalentInfo that throws is counted, not fatal. So is a result that is
 -- a secret value: truth-testing it throws, and it must do so inside the pcall.
