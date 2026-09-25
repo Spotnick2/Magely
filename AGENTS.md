@@ -271,14 +271,14 @@ rows. `Magely.lua`'s ForceRebuild must never reopen a window the player closed.
 ## SavedVariables
 
 `MagelyDB` is **per character**; `MagelySVCheck` is account-wide and holds only the library's
-`svLoadCheck` marker, so the addon can tell when account-wide storage is fixed. Same as Priestly
-and Wildly. The TBC addon kept `MagelyDB` account-wide; there is no migration, because this is a
-separate install and nothing loads back on this client anyway.
+`svLoadCheck` marker, so the addon can tell when account-wide storage works. Same as Priestly and
+Wildly. The TBC addon kept `MagelyDB` account-wide; there is no migration, because this is a
+separate install.
 
-**NO SavedVariables load back on this client — per-character included** (measured on build
-1.60.1.69913 and re-checked on 69977; see Priestly's `AGENTS.md`, `docs/FOREVER-PROBE.md` section
-11, and the PORTING doc section 0). Every session starts from defaults. Write the addon so losing
-every setting at login is survivable.
+**SavedVariables load back on 70009.** Through 69977 nothing did, per-character included
+(Priestly's `docs/FOREVER-PROBE.md` section 11): every session started from defaults. The addon is
+still written so losing every setting at login is survivable - the beta has broken this once, and
+Magely v1.0.0 shipped before the fix.
 
 `MEASURED_ON_BUILD` in `MagelyConfig.lua` is **70009**, the build Priestly last re-measured
 (Spotnick2/priestly#60: API dump, `/pprobe` in and out of combat, the click bench).

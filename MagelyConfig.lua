@@ -42,11 +42,11 @@ local DEFAULTS = {
 
 -- ─── One write path for MagelyDB ─────────────────────────────────────────────
 --
--- Nothing an addon writes survives a real client restart on this build -
+-- Through build 69977 nothing an addon wrote survived a real client restart -
 -- account-wide and per-character SavedVariables, and CVars too (Priestly's
--- docs/FOREVER-PROBE.md section 11). The fix is Blizzard's. Until it lands,
--- every settings change goes through one setter anyway, so that whatever the
--- fix needs - a migration, a validation pass, a different store - lands in one
+-- docs/FOREVER-PROBE.md section 11). 70009 fixed SavedVariables. Every
+-- settings change still goes through one setter, so that whatever comes next -
+-- a migration, a validation pass, the client breaking it again - lands in one
 -- place instead of in each handler.
 --
 -- The setter, the check that notices the fix and the check that notices a new

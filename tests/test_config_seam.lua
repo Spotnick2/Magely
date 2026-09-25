@@ -2,9 +2,9 @@
 -- test_config_seam.lua - one write path for MagelyDB, and the two checks
 -- that watch for the client being fixed or updated.
 --
--- Nothing an addon writes survives a real restart on this build. Until
--- Blizzard fixes it, every settings change goes through Magely_SetConfig so
--- the fix - or the migration it needs - lands in one place.
+-- Nothing an addon wrote survived a real restart through build 69977; 70009
+-- fixed it. Every settings change still goes through Magely_SetConfig, so a
+-- migration - or the next time the client breaks it - lands in one place.
 --
 --   & 'C:\Program Files (x86)\Lua\5.1\lua.exe' tests\test_config_seam.lua
 ------------------------------------------------------------
@@ -221,9 +221,19 @@ local before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
 -- The load check's own silence. BROKEN and MEASURED differ now (69977 and
 -- 70009), so on the broken build the OTHER detector - the new-build notice -
--- correctly speaks; it is tested below. What must not appear is a fix.
-local function loadCheckSaid(from) return said(from):find("came back", 1, true) ~= nil end
-H.check(not loadCheckSaid(before), "no marker at login, no settings announcement - the broken build's state")
+-- correctly speaks; it is tested below. That one known line is set aside, and
+-- everything else must be silence: the load check may say NOTHING here, not
+-- merely nothing containing one phrase.
+local function loadCheckSaid(from)
+    local rest = {}
+    for i = from + 1, #WoW.messages do
+        if not WoW.messages[i]:find("tested on game build", 1, true) then
+            rest[#rest + 1] = WoW.messages[i]
+        end
+    end
+    return table.concat(rest, " | ")
+end
+H.eq(loadCheckSaid(before), "", "no marker at login, nothing announced but the build notice")
 H.check(type(MagelyDB.svLoadCheck) == "table", "the per-character marker is written")
 H.check(type(MagelySVCheck.svLoadCheck) == "table", "and the account-wide one")
 H.eq(MagelyDB.svLoadCheck.build, BROKEN, "with the build it was written on")
@@ -232,10 +242,10 @@ H.eq(MagelyDB.svLoadCheck.build, BROKEN, "with the build it was written on")
 -- being served from the client's cache. Neither may announce.
 before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
-H.check(not loadCheckSaid(before),
+H.eq(loadCheckSaid(before), "",
     "on the broken build a returning marker is the client's cache, not a fix")
 Magely_HandleEnteringWorld(false, true)
-H.check(not loadCheckSaid(before), "and a /reload never announces")
+H.eq(loadCheckSaid(before), "", "and a /reload never announces")
 
 -- A zone change is neither, and must not touch the marker.
 local marker = MagelyDB.svLoadCheck
