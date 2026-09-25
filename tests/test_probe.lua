@@ -285,6 +285,28 @@ end
 H.check(sawInspect, "and asked for as an inspection of the target")
 H.eq(result("GetInspectSpecialization(target)"), "0", "the inspect specialization is recorded too")
 
+-- The client as measured on 70009: a query without a tier throws, and a
+-- tier without the tree finds nothing. If the tree is what was missing, the
+-- third shape is the one that answers.
+rawset(_G, "C_SpecializationInfo", {
+    GetTalentInfo = function(q)
+        if not q.tier then error("GetTalentInfo(): query.tier must be specified.") end
+        if q.specializationIndex and q.tier <= 2 then
+            return { name = "Tree " .. q.specializationIndex .. " t" .. q.tier .. "c" .. q.column,
+                     rank = 0, maxRank = 5 }
+        end
+        return nil
+    end,
+})
+H.check(pcall(slash, "inspect"), "the probe runs against the 70009 shape")
+H.check((result("own talents by specializationIndex/talentIndex") or ""):find("tier must be specified", 1, true),
+    "the index shape records the client's refusal: " .. tostring(result("own talents by specializationIndex/talentIndex")))
+H.check((result("own talents by tier/column") or ""):find("0 hits, 0 errors", 1, true),
+    "tier/column alone finds nothing, as measured")
+local three = result("own talents by specializationIndex/tier/column") or ""
+H.check(three:find("24 hits", 1, true) and three:find("Tree 1 t1c1", 1, true),
+    "and the tree plus tier and column is walked in full, with examples: " .. three)
+
 -- A GetTalentInfo that throws is counted, not fatal. So is a result that is
 -- a secret value: truth-testing it throws, and it must do so inside the pcall.
 rawset(_G, "C_SpecializationInfo", { GetTalentInfo = function() error("bad query") end })

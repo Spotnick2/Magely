@@ -357,6 +357,14 @@ local function QueryTalents(isInspect, unit)
         { label = "tier/column", make = function(a, b)
             return { isInspect = isInspect, target = unit, tier = a, column = b } end,
           outer = 10, inner = 4 },
+        -- Measured on 70009: the index shape throws "query.tier must be
+        -- specified", and tier/column alone finds nothing - so the tree may
+        -- be what is missing. `a` is the tree; `b` walks tiers 1-10 by
+        -- columns 1-4.
+        { label = "specializationIndex/tier/column", make = function(a, b)
+            return { isInspect = isInspect, target = unit, specializationIndex = a,
+                     tier = math.floor((b - 1) / 4) + 1, column = (b - 1) % 4 + 1 } end,
+          outer = 3, inner = 40 },
     }
     for _, shape in ipairs(shapes) do
         local hits, errors, firstErr, examples = 0, 0, nil, {}
