@@ -5,8 +5,8 @@ relies on that **has been measured in game** (by Priestly, on the same library) 
 **Mage-specific and has not**, so the first tester knows what to look at and nobody mistakes an
 assumption for a measurement.
 
-Client: WoW: Forever 1.60.1, builds 69913, 69977 and - from 2026-09-25 - **70009**
-(`MEASURED_ON_BUILD` is still 69977; see "Build 70009" below).
+Client: WoW: Forever 1.60.1, builds 69913, 69977 and - from 2026-09-25 - **70009**, built Sep 23
+(`MEASURED_ON_BUILD` is 70009; see "Build 70009" below).
 
 ## Shared with Priestly — taken as measured
 
@@ -23,7 +23,8 @@ in game. The measurements are in `C:\Projects\Priestly\docs\FOREVER-PROBE.md` an
 | `GetUnitName(unit, false)` for surnames; GUID-keyed identity | Priestly probe §4 |
 | `GetInstanceInfo()` returns the continent outdoors; `instanceType` gates | Priestly probe §5, §12 |
 | `C_Spell.GetSpellInfo(id)` resolves unlearned spells by ID, not by name | Priestly probe §8 |
-| SavedVariables never load back, per-character included - **on 69913 and 69977. On 70009 the owner reports they now load**; being re-measured in Priestly | Priestly probe §11; PORTING §1 |
+| SavedVariables never loaded back, per-character included, on 69913 and 69977. **70009 fixed it** | Priestly probe §11 |
+| **Re-measured on 70009** (2026-09-25): aura secrecy unchanged (`combat=true secret=true` in a fight); secure buttons build, fire on both edges, and one cast per click on all three bench buttons; `loadstring_untainted` still absent. `UnitName("player")` now splits like every unit; `GetInstanceInfo` returns eleven values | Spotnick2/priestly#60 |
 | Registering `COMBAT_LOG_EVENT_UNFILTERED` is a forbidden action | PORTING §3 (Stakeout probe) |
 | The options panel's templates exist | Priestly probe §3 |
 
@@ -68,13 +69,12 @@ Not answered yet, and why:
 
 ## Build 70009
 
-The client moved to **70009**, and the owner reports SavedVariables now load back. Two constants in
-`MagelyConfig.lua` are about exactly that, and follow Priestly's fix rather than being guessed here:
+The client moved to **70009** and SavedVariables load back. Priestly re-measured it
+(Spotnick2/priestly#60), and Magely followed:
 
-- `MEASURED_ON_BUILD` is 69977, so every real login on 70009 shows the "tested on another build"
-  notice until it is bumped - which needs the notes re-checked on 70009 (a new API dump).
-- `SV_BROKEN_ON_BUILD` is 69977, so on 70009 the load check is free to announce that settings
-  came back - which is now the right answer.
+- `MEASURED_ON_BUILD` is **70009**, so the "tested on another build" notice is silent there.
+- `SV_BROKEN_ON_BUILD` stays **69977**, the last broken build, so on 70009 the load check is free
+  to announce that settings came back - which is the right answer.
 
 ## The cooldown pane's questions - `Tools/MagelyProbe`
 

@@ -45,20 +45,20 @@ H.eq(directive("Interface"), "16001",
 ------------------------------------------------------------
 -- Settings storage
 --
--- Measured on build 1.60.1.69913: this client writes SavedVariables and never
--- reads them back - account-wide AND per-character - so every session starts
--- from defaults. (An earlier note here said per-character storage loads. It
--- does not; that was concluded from reading the saved file, which always looks
--- populated because EnsureDefaults rewrites every default each session.)
+-- Measured on builds 69913 and 69977: the client wrote SavedVariables and never
+-- read them back - account-wide AND per-character - so every session started
+-- from defaults. (An earlier note in Priestly said per-character storage
+-- loaded. It did not; that was concluded from reading the saved file, which
+-- always looks populated because EnsureDefaults rewrites every default each
+-- session.) Build 70009 fixed it, and settings persist.
 --
--- So this directive does not make settings persist today. It stays because it
--- is no worse than account-wide, and it is where settings will be read from
--- once Blizzard fixes the loader. Magely follows Priestly here; Priestly's
--- issues #9 and #35 have the history. Read them before changing storage.
+-- Per character is where Magely's settings belong: one Mage's choices are not
+-- another's. Magely follows Priestly here; Priestly's issues #9 and #35 have
+-- the history. Read them before changing storage.
 ------------------------------------------------------------
 
 H.eq(directive("SavedVariablesPerCharacter"), "MagelyDB",
-    "MagelyDB is declared per character - no worse than account-wide while neither loads")
+    "MagelyDB is declared per character - one Mage's settings are not another's")
 -- The only account-wide variable is the load check's marker, so the addon can
 -- tell when account-wide storage is fixed.
 H.eq(directive("SavedVariables"), "MagelySVCheck",

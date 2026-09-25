@@ -2,9 +2,9 @@
 -- test_config_seam.lua - one write path for MagelyDB, and the two checks
 -- that watch for the client being fixed or updated.
 --
--- Nothing an addon writes survives a real restart on this build. Until
--- Blizzard fixes it, every settings change goes through Magely_SetConfig so
--- the fix - or the migration it needs - lands in one place.
+-- Nothing an addon wrote survived a real restart through build 69977; 70009
+-- fixed it. Every settings change still goes through Magely_SetConfig, so a
+-- migration - or the next time the client breaks it - lands in one place.
 --
 --   & 'C:\Program Files (x86)\Lua\5.1\lua.exe' tests\test_config_seam.lua
 ------------------------------------------------------------
@@ -18,12 +18,13 @@ local MEASURED = TC.MEASURED_ON_BUILD
 local FIXED = "70123"   -- any build other than the two above
 
 -- Pinned independently of the source: the checks below take their builds
--- from it, so a stale constant would pass them all. 69977 is the build of the
--- newest API dump, re-checked against 69913 in the porting notes - the same
--- API surface, and SavedVariables still broken. Bump this with the constants
--- after re-measuring, never to make a test pass.
-H.eq(MEASURED, "69977", "MEASURED_ON_BUILD is the build the notes were last checked on")
-H.eq(BROKEN, "69977", "SV_BROKEN_ON_BUILD is the newest build SavedVariables are measured broken on")
+-- from it, so a stale constant would pass them all. 70009 is the build
+-- Priestly last re-measured (priestly#60); 69977 is the last build
+-- SavedVariables were measured broken on - 70009 fixed them. The two differ,
+-- and should: one follows the client, the other names a broken build. Bump
+-- them after re-measuring, never to make a test pass.
+H.eq(MEASURED, "70009", "MEASURED_ON_BUILD is the build the notes were last checked on")
+H.eq(BROKEN, "69977", "SV_BROKEN_ON_BUILD is the last build SavedVariables were measured broken on")
 
 ------------------------------------------------------------
 -- The setters
@@ -214,11 +215,25 @@ local function freshSession(build)
     Magely_EnsureDefaults()
 end
 
--- Today, broken build, nothing loaded: nothing announced, markers written.
+-- On the broken build (69977), nothing loaded: nothing announced, markers written.
 freshSession(BROKEN)
 local before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
-H.eq(said(before), "", "no marker at login, nothing announced - today's state")
+-- The load check's own silence. BROKEN and MEASURED differ now (69977 and
+-- 70009), so on the broken build the OTHER detector - the new-build notice -
+-- correctly speaks; it is tested below. That one known line is set aside, and
+-- everything else must be silence: the load check may say NOTHING here, not
+-- merely nothing containing one phrase.
+local function loadCheckSaid(from)
+    local rest = {}
+    for i = from + 1, #WoW.messages do
+        if not WoW.messages[i]:find("tested on game build", 1, true) then
+            rest[#rest + 1] = WoW.messages[i]
+        end
+    end
+    return table.concat(rest, " | ")
+end
+H.eq(loadCheckSaid(before), "", "no marker at login, nothing announced but the build notice")
 H.check(type(MagelyDB.svLoadCheck) == "table", "the per-character marker is written")
 H.check(type(MagelySVCheck.svLoadCheck) == "table", "and the account-wide one")
 H.eq(MagelyDB.svLoadCheck.build, BROKEN, "with the build it was written on")
@@ -227,10 +242,10 @@ H.eq(MagelyDB.svLoadCheck.build, BROKEN, "with the build it was written on")
 -- being served from the client's cache. Neither may announce.
 before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
-H.eq(said(before), "",
+H.eq(loadCheckSaid(before), "",
     "on the broken build a returning marker is the client's cache, not a fix")
 Magely_HandleEnteringWorld(false, true)
-H.eq(said(before), "", "and a /reload never announces")
+H.eq(loadCheckSaid(before), "", "and a /reload never announces")
 
 -- A zone change is neither, and must not touch the marker.
 local marker = MagelyDB.svLoadCheck

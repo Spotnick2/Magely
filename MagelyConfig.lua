@@ -42,11 +42,11 @@ local DEFAULTS = {
 
 -- ─── One write path for MagelyDB ─────────────────────────────────────────────
 --
--- Nothing an addon writes survives a real client restart on this build -
+-- Through build 69977 nothing an addon wrote survived a real client restart -
 -- account-wide and per-character SavedVariables, and CVars too (Priestly's
--- docs/FOREVER-PROBE.md section 11). The fix is Blizzard's. Until it lands,
--- every settings change goes through one setter anyway, so that whatever the
--- fix needs - a migration, a validation pass, a different store - lands in one
+-- docs/FOREVER-PROBE.md section 11). 70009 fixed SavedVariables. Every
+-- settings change still goes through one setter, so that whatever comes next -
+-- a migration, a validation pass, the client breaking it again - lands in one
 -- place instead of in each handler.
 --
 -- The setter, the check that notices the fix and the check that notices a new
@@ -60,16 +60,20 @@ local DEFAULTS = {
 -- and keeps the learned-duration cache. Everything else calls the setter.
 
 -- Which build the notes Magely relies on were measured on, and the build where
--- SavedVariables are measured broken. In the SOURCE, because it is the one
--- thing that survives a restart here. Bump MEASURED_ON_BUILD after
+-- SavedVariables are measured broken. In the SOURCE, because through 69977 it
+-- was the one thing that survived a restart, and it is still the one thing no
+-- client bug can lose. Bump MEASURED_ON_BUILD after
 -- re-measuring (AGENTS.md); the library warns at every real login until then.
 --
--- 69977, not the 69913 Priestly and Wildly still carry: the porting notes
--- re-checked 69977 against 69913 - the same API surface, and SavedVariables
--- still never load back - and 69977 is the build of the newest API dump. On
--- 69913 constants a 69977 client would warn at every login, and a relog there
--- (served from the client's cache) would be announced as the fix.
-local MEASURED_ON_BUILD = "69977"
+-- MEASURED_ON_BUILD is 70009: Priestly re-measured it (Spotnick2/priestly#60)
+-- - a new API dump, which is NOT the same set as 69977's but removes nothing
+-- Magely or the library calls; /pprobe out of combat and in combat, aura
+-- secrecy unchanged; the click bench, one cast per click.
+--
+-- SV_BROKEN_ON_BUILD stays 69977, the last build SavedVariables were measured
+-- broken on (70009 fixed them). It names a broken build and does not follow the
+-- client forward: on it, a returning marker is the client's in-process cache.
+local MEASURED_ON_BUILD = "70009"
 local SV_BROKEN_ON_BUILD = "69977"
 
 -- config-owner: begin

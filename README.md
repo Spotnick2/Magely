@@ -92,11 +92,9 @@ catch up:
   already turned out to differ from both TBC and Vanilla for other classes. Magely learns the real
   duration from live buffs rather than assuming one, and forgets what it learned whenever the
   client build changes.
-* **Your settings reset every time you reload.** This is a client bug and it affects every addon:
-  Forever writes addon settings to disk correctly and then never reads them back at login. So the
-  window position, the lock and every option start fresh each session. No addon can work around
-  it. It waits on Blizzard's fix, which has been reported, and Magely says so in chat once a game
-  update fixes it.
+* **Settings now stay between sessions.** Up to game build 69977 a client bug wiped every addon's
+  settings at each login: Forever wrote them to disk and never read them back. Build 70009 fixed
+  it, and Magely says so in chat the first time it sees your settings come back.
 
 ---
 
