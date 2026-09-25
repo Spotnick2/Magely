@@ -280,10 +280,11 @@ separate install and nothing loads back on this client anyway.
 11, and the PORTING doc section 0). Every session starts from defaults. Write the addon so losing
 every setting at login is survivable.
 
-`MEASURED_ON_BUILD` and `SV_BROKEN_ON_BUILD` in `MagelyConfig.lua` are **69977**, the newest build
-both facts were checked on; Priestly and Wildly still carry 69913. `test_config_seam` pins them
-independently of the source, so bump the test with the constants after re-measuring - never to
-make it pass.
+`MEASURED_ON_BUILD` in `MagelyConfig.lua` is **70009**, the build Priestly last re-measured
+(Spotnick2/priestly#60: API dump, `/pprobe` in and out of combat, the click bench).
+`SV_BROKEN_ON_BUILD` is **69977**, the last build SavedVariables were measured broken on - 70009
+fixed them - and it does not follow the client forward. `test_config_seam` pins both independently
+of the source, so bump the test with the constants after re-measuring - never to make it pass.
 
 - **Never verify persistence by reading the SV file or diffing it against `.bak`.** It always
   looks populated because `EnsureDefaults` rewrites every default each session. Count launches
@@ -322,8 +323,13 @@ Current `MagelyDB` keys: `trackIntellect`, `trackAmplify`, `trackDampen`, `ampli
 - **`COMBAT_LOG_EVENT_UNFILTERED` cannot be registered** — it is a forbidden action here. Deaths
   are `UNIT_DIED`; other casts are unmeasured.
 - **`C_Spell.GetSpellInfo(name)` only resolves spells the player KNOWS.** By ID it always works.
-- **`UnitName(unit)` is a trap**: first name only for anyone but the player, with the surname where
-  the realm used to be. Display with `API.UnitDisplayName`; key caches on `API.UnitKey` (GUID).
+- **`UnitName(unit)` is a trap.** On 70009 it returns only the **first name** for *every* unit,
+  player included, with the surname where the realm normally sits - so `local name, realm =
+  UnitName(unit)` hands you a surname and calls it a realm. On 69913 the player alone came back
+  joined, with a real realm; which reading is right is unresolved (Priestly's
+  `docs/FOREVER-PROBE.md` section 4), so depend on neither. Display with `API.UnitDisplayName`
+  (`GetUnitName(unit, false)`, which joins under both); key caches on `API.UnitKey` (GUID). The
+  test stub models 70009 by default and 69913's shape for a unit given a `realm`.
 - **`GetInstanceInfo()` returns the continent outdoors** — gate on `instanceType ~= "none"`.
 - **Auras are unreadable in combat for every unit**, and a secret value throws when compared or
   truth-tested. Never read an aura outside the library (`API.ReadBuff`, the engine).

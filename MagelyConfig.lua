@@ -64,12 +64,15 @@ local DEFAULTS = {
 -- thing that survives a restart here. Bump MEASURED_ON_BUILD after
 -- re-measuring (AGENTS.md); the library warns at every real login until then.
 --
--- 69977, not the 69913 Priestly and Wildly still carry: the porting notes
--- re-checked 69977 against 69913 - the same API surface, and SavedVariables
--- still never load back - and 69977 is the build of the newest API dump. On
--- 69913 constants a 69977 client would warn at every login, and a relog there
--- (served from the client's cache) would be announced as the fix.
-local MEASURED_ON_BUILD = "69977"
+-- MEASURED_ON_BUILD is 70009: Priestly re-measured it (Spotnick2/priestly#60)
+-- - a new API dump, which is NOT the same set as 69977's but removes nothing
+-- Magely or the library calls; /pprobe out of combat and in combat, aura
+-- secrecy unchanged; the click bench, one cast per click.
+--
+-- SV_BROKEN_ON_BUILD stays 69977, the last build SavedVariables were measured
+-- broken on (70009 fixed them). It names a broken build and does not follow the
+-- client forward: on it, a returning marker is the client's in-process cache.
+local MEASURED_ON_BUILD = "70009"
 local SV_BROKEN_ON_BUILD = "69977"
 
 -- config-owner: begin

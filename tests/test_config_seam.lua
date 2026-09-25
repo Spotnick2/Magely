@@ -18,12 +18,13 @@ local MEASURED = TC.MEASURED_ON_BUILD
 local FIXED = "70123"   -- any build other than the two above
 
 -- Pinned independently of the source: the checks below take their builds
--- from it, so a stale constant would pass them all. 69977 is the build of the
--- newest API dump, re-checked against 69913 in the porting notes - the same
--- API surface, and SavedVariables still broken. Bump this with the constants
--- after re-measuring, never to make a test pass.
-H.eq(MEASURED, "69977", "MEASURED_ON_BUILD is the build the notes were last checked on")
-H.eq(BROKEN, "69977", "SV_BROKEN_ON_BUILD is the newest build SavedVariables are measured broken on")
+-- from it, so a stale constant would pass them all. 70009 is the build
+-- Priestly last re-measured (priestly#60); 69977 is the last build
+-- SavedVariables were measured broken on - 70009 fixed them. The two differ,
+-- and should: one follows the client, the other names a broken build. Bump
+-- them after re-measuring, never to make a test pass.
+H.eq(MEASURED, "70009", "MEASURED_ON_BUILD is the build the notes were last checked on")
+H.eq(BROKEN, "69977", "SV_BROKEN_ON_BUILD is the last build SavedVariables were measured broken on")
 
 ------------------------------------------------------------
 -- The setters
@@ -218,7 +219,11 @@ end
 freshSession(BROKEN)
 local before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
-H.eq(said(before), "", "no marker at login, nothing announced - today's state")
+-- The load check's own silence. BROKEN and MEASURED differ now (69977 and
+-- 70009), so on the broken build the OTHER detector - the new-build notice -
+-- correctly speaks; it is tested below. What must not appear is a fix.
+local function loadCheckSaid(from) return said(from):find("came back", 1, true) ~= nil end
+H.check(not loadCheckSaid(before), "no marker at login, no settings announcement - the broken build's state")
 H.check(type(MagelyDB.svLoadCheck) == "table", "the per-character marker is written")
 H.check(type(MagelySVCheck.svLoadCheck) == "table", "and the account-wide one")
 H.eq(MagelyDB.svLoadCheck.build, BROKEN, "with the build it was written on")
@@ -227,10 +232,10 @@ H.eq(MagelyDB.svLoadCheck.build, BROKEN, "with the build it was written on")
 -- being served from the client's cache. Neither may announce.
 before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
-H.eq(said(before), "",
+H.check(not loadCheckSaid(before),
     "on the broken build a returning marker is the client's cache, not a fix")
 Magely_HandleEnteringWorld(false, true)
-H.eq(said(before), "", "and a /reload never announces")
+H.check(not loadCheckSaid(before), "and a /reload never announces")
 
 -- A zone change is neither, and must not touch the marker.
 local marker = MagelyDB.svLoadCheck
