@@ -94,11 +94,10 @@ What `Tools/MagelyProbe` has measured so far (build 70009; `docs/FOREVER-NOTES.m
 
 - **The pane itself is possible**: a plain frame anchored under the protected window can be
   resized, moved, hidden and shown in combat.
-- **Other players' casts cannot be seen**: `UNIT_SPELLCAST_SUCCEEDED` registers but delivered
-  nothing while a group member cast. With the combat log forbidden, the only source left is each
-  provider announcing its **own** Innervate / Power Infusion by addon message - which depends on a
-  player's own casts being observable (not yet measured), and only covers providers running the
-  addon.
+- **Other players' casts: not established.** `UNIT_SPELLCAST_SUCCEEDED` registers; one ~8-second
+  run while the owner's second account cast saw no event for any unit, but that account being in
+  the party was not confirmed. A controlled repeat decides it. If others' casts are not delivered,
+  the only source left is each provider announcing its **own** casts by addon message.
 - **Talents cannot be read** through `C_SpecializationInfo.GetTalentInfo` in any query shape, for
   yourself or an inspected target; inspection itself works. Whether Retail's traits system holds
   them is the probe's next question.
