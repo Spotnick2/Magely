@@ -70,11 +70,19 @@ local DEFAULTS = {
 -- Magely or the library calls; /pprobe out of combat and in combat, aura
 -- secrecy unchanged; the click bench, one cast per click.
 --
--- SV_BROKEN_ON_BUILD stays 69977, the last build SavedVariables were measured
--- broken on (70009 fixed them). It names a broken build and does not follow the
--- client forward: on it, a returning marker is the client's in-process cache.
+-- There is no companion constant for the settings check. Magely used to pass
+-- SV_BROKEN_ON_BUILD - 69977, the last build SavedVariables were measured
+-- broken on - and the library trusted a returning marker on every build
+-- except that one, so every relog on a build the constant did not name
+-- announced a fix that had not happened. This addon, Priestly and Wildly all
+-- shipped that when 69913 patched to 69977 without fixing loading.
+--
+-- As of LibGroupBuffs r14 the library reads the marker's OWN recorded build: a
+-- build changes only when the client is patched, a patch requires a full exit,
+-- so a marker returning under a different build cannot be the in-process cache
+-- a relog hands back. 70009 fixed loading for real, and r14 reads that
+-- correctly with nothing here to keep current.
 local MEASURED_ON_BUILD = "70009"
-local SV_BROKEN_ON_BUILD = "69977"
 
 -- config-owner: begin
 -- The two saved tables, created on first use. MagelyDB holds the settings
@@ -103,7 +111,6 @@ local settings = Magely.Settings.New({
         { label = "account-wide",  get = AccountCheckStore },
     },
     measuredOnBuild = MEASURED_ON_BUILD,
-    svBrokenOnBuild = SV_BROKEN_ON_BUILD,
     report = function(text, kind)
         if not DEFAULT_CHAT_FRAME then return end
         if kind == "settingsLoaded" then text = "|cff55ff55" .. text .. "|r" end
@@ -470,9 +477,10 @@ end
 --
 -- Both checks live in LibGroupBuffs-1.0's Settings.lua. The load check keeps a
 -- `svLoadCheck` marker in each scope - written every session, never in
--- DEFAULTS - and says so once when one comes back on a real login on a build
--- other than SV_BROKEN_ON_BUILD. The build check warns at every real login on
--- a build other than MEASURED_ON_BUILD, deliberately unlatched.
+-- DEFAULTS - and says so once when one comes back carrying a build OTHER than
+-- the one running, which only a patched client can produce. The build check
+-- warns at every real login on a build other than MEASURED_ON_BUILD,
+-- deliberately unlatched.
 
 function Magely_CheckClientBuild()
     settings:CheckBuild()
@@ -1126,6 +1134,5 @@ Magely._testConfig = {
     forgetReported       = function() g_ReportedUnknown = {} end,
     IsMage               = IsMage,
     MEASURED_ON_BUILD    = MEASURED_ON_BUILD,
-    SV_BROKEN_ON_BUILD   = SV_BROKEN_ON_BUILD,
     eventFrame           = function() return cfgFrame end,
 }

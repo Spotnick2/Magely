@@ -13,18 +13,21 @@ dofile("tests/wow_stubs.lua")
 local H = dofile("tests/harness.lua")
 local _, TC = H.loadAddon()
 
-local BROKEN = TC.SV_BROKEN_ON_BUILD
 local MEASURED = TC.MEASURED_ON_BUILD
-local FIXED = "70123"   -- any build other than the two above
+local BROKEN = "69977"   -- a test fixture: "a build older than the one running"
+local FIXED = "70123"    -- any build other than the two above
 
--- Pinned independently of the source: the checks below take their builds
--- from it, so a stale constant would pass them all. 70009 is the build
--- Priestly last re-measured (priestly#60); 69977 is the last build
--- SavedVariables were measured broken on - 70009 fixed them. The two differ,
--- and should: one follows the client, the other names a broken build. Bump
--- them after re-measuring, never to make a test pass.
+-- Pinned independently of the source: the checks below take their build from
+-- it, so a stale constant would pass them all. 70009 is the build Priestly
+-- last re-measured (priestly#60). Bump it after re-measuring, never to make a
+-- test pass.
 H.eq(MEASURED, "70009", "MEASURED_ON_BUILD is the build the notes were last checked on")
-H.eq(BROKEN, "69977", "SV_BROKEN_ON_BUILD is the last build SavedVariables were measured broken on")
+-- There is no second constant since LibGroupBuffs r14: the library decides
+-- whether settings came back from the marker's own recorded build, so no host
+-- build number is left to go stale - or to be bumped into announcing a fix
+-- that never happened, which is what it used to do.
+H.eq(TC.SV_BROKEN_ON_BUILD, nil,
+    "and no build constant for the settings check, which r14 decides itself")
 
 ------------------------------------------------------------
 -- The setters
@@ -258,11 +261,15 @@ before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
 local msg = said(before)
 H.check(msg:find("came back", 1, true), "a real login on a new build announces it: " .. msg)
-H.check(msg:find("fully exited", 1, true), "conditional on a full exit: " .. msg)
-H.check(msg:find("proves nothing", 1, true), "and says a relog or /reload proves nothing: " .. msg)
+H.check(msg:find(BROKEN, 1, true) and msg:find(FIXED, 1, true),
+    "naming the build it was saved on and the one it was read on: " .. msg)
+H.check(msg:find("fully restarted", 1, true),
+    "and why that settles it - the game restarted in between: " .. msg)
+H.check(msg:find("is fixed", 1, true), "so it says so plainly: " .. msg)
 H.check(msg:find("per-character", 1, true) and msg:find("account-wide", 1, true),
     "naming the scopes that came back: " .. msg)
-H.check(msg:find(FIXED, 1, true), "and the build: " .. msg)
+H.check(not msg:find("proves nothing", 1, true),
+    "with the old hedge gone, because a relog cannot produce this: " .. msg)
 
 -- Once only: the latch persists by then, because the store works.
 before = #WoW.messages
@@ -272,7 +279,9 @@ H.check(not said(before):find("came back", 1, true), "it does not repeat at the 
 -- Account-wide fixed on its own is worth knowing: it is where settings would
 -- move back to.
 freshSession(FIXED)
-MagelySVCheck = { svLoadCheck = { stamp = "then", build = FIXED } }
+-- An OLDER build in the marker: one stamped with the build already running is
+-- what a relog looks like, and r14 says nothing to that, on purpose.
+MagelySVCheck = { svLoadCheck = { stamp = "then", build = BROKEN } }
 before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
 msg = said(before)
