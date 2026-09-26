@@ -19,7 +19,7 @@ Magely = Magely or {}
 -- feature check: behaviour changes cannot be feature-detected. r12 is the
 -- first with lib.Status. Keep this equal to the tag .pkgmeta pins;
 -- tests/test_manifest.lua checks that.
-local NEEDS_MINOR = 12
+local NEEDS_MINOR = 14
 
 local lib, minor
 if LibStub then lib, minor = LibStub("LibGroupBuffs-1.0", true) end
