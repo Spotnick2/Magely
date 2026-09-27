@@ -28,6 +28,18 @@ H.eq(MEASURED, "70009", "MEASURED_ON_BUILD is the build the notes were last chec
 -- that never happened, which is what it used to do.
 H.eq(TC.SV_BROKEN_ON_BUILD, nil,
     "and no build constant for the settings check, which r14 decides itself")
+-- The seam only shows what Magely exports; the constant could come back into
+-- the Settings.New spec without being exported, and the library would accept
+-- it in silence. So the source is read too: neither field is passed at all.
+do
+    local src = H.readFile("MagelyConfig.lua") or ""
+    local code = {}
+    for line in (src .. "\n"):gmatch("([^\n]*)\n") do code[#code + 1] = (line:gsub("%-%-.*$", "")) end
+    code = table.concat(code, "\n")
+    H.check(not code:find("svBrokenOnBuild", 1, true) and not code:find("svBrokenSince", 1, true),
+        "MagelyConfig.lua passes no svBrokenOnBuild / svBrokenSince to the library")
+    H.check(not code:find("SV_BROKEN_ON_BUILD", 1, true), "and defines no SV_BROKEN_ON_BUILD")
+end
 
 ------------------------------------------------------------
 -- The setters
@@ -241,14 +253,16 @@ H.check(type(MagelyDB.svLoadCheck) == "table", "the per-character marker is writ
 H.check(type(MagelySVCheck.svLoadCheck) == "table", "and the account-wide one")
 H.eq(MagelyDB.svLoadCheck.build, BROKEN, "with the build it was written on")
 
--- The broken build, marker still in memory: that is a relog or a /reload
--- being served from the client's cache. Neither may announce.
+-- A marker stamped with the build running now: that is a relog or a /reload
+-- served from the client's cache - on any build, not only a broken one; r14
+-- decides from the marker's own build, and 69977 plays no special part.
+-- Neither may announce.
 before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
 H.eq(loadCheckSaid(before), "",
-    "on the broken build a returning marker is the client's cache, not a fix")
+    "a marker from the running build is silent on a relog")
 Magely_HandleEnteringWorld(false, true)
-H.eq(loadCheckSaid(before), "", "and a /reload never announces")
+H.eq(loadCheckSaid(before), "", "and on a /reload")
 
 -- A zone change is neither, and must not touch the marker.
 local marker = MagelyDB.svLoadCheck
@@ -271,10 +285,35 @@ H.check(msg:find("per-character", 1, true) and msg:find("account-wide", 1, true)
 H.check(not msg:find("proves nothing", 1, true),
     "with the old hedge gone, because a relog cannot produce this: " .. msg)
 
--- Once only: the latch persists by then, because the store works.
+-- Once only. The next login on the same build is silent because the marker
+-- now carries that build - no latch involved.
 before = #WoW.messages
 Magely_HandleEnteringWorld(true, false)
 H.check(not said(before):find("came back", 1, true), "it does not repeat at the next login")
+-- The latch is what keeps it silent across the NEXT patch: the marker comes
+-- back from a different build again, which is not news on a healthy client.
+H.eq(MagelyDB.svLoadCheck.loads, true, "the announcement latched that loading works")
+WoW.build = "70200"
+before = #WoW.messages
+Magely_HandleEnteringWorld(true, false)
+H.check(not said(before):find("came back", 1, true),
+    "and a later patch does not announce the fix again: " .. said(before))
+
+-- A player r12 already told has a marker latched r12's way, `announced =
+-- true`. r14 ignored that and would tell them again at the next patch; the
+-- pinned r15 reads it (LibGroupBuffs #31).
+freshSession(FIXED)
+MagelyDB = { svLoadCheck = { stamp = "then", build = FIXED, announced = true } }
+MagelySVCheck = { svLoadCheck = { stamp = "then", build = FIXED, announced = true } }
+Magely_EnsureDefaults()
+before = #WoW.messages
+Magely_HandleEnteringWorld(true, false)
+H.check(not said(before):find("came back", 1, true), "an r12-latched marker is silent on its build")
+WoW.build = "70300"
+before = #WoW.messages
+Magely_HandleEnteringWorld(true, false)
+H.check(not said(before):find("came back", 1, true),
+    "and across the next patch - a player r12 told is not told again: " .. said(before))
 
 -- Account-wide fixed on its own is worth knowing: it is where settings would
 -- move back to.

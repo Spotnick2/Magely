@@ -59,10 +59,9 @@ local DEFAULTS = {
 -- `config-owner` region - the code that creates the tables, seeds defaults
 -- and keeps the learned-duration cache. Everything else calls the setter.
 
--- Which build the notes Magely relies on were measured on, and the build where
--- SavedVariables are measured broken. In the SOURCE, because through 69977 it
--- was the one thing that survived a restart, and it is still the one thing no
--- client bug can lose. Bump MEASURED_ON_BUILD after
+-- Which build the notes Magely relies on were measured on. In the SOURCE,
+-- because through 69977 it was the one thing that survived a restart, and it
+-- is still the one thing no client bug can lose. Bump MEASURED_ON_BUILD after
 -- re-measuring (AGENTS.md); the library warns at every real login until then.
 --
 -- MEASURED_ON_BUILD is 70009: Priestly re-measured it (Spotnick2/priestly#60)
@@ -81,7 +80,9 @@ local DEFAULTS = {
 -- build changes only when the client is patched, a patch requires a full exit,
 -- so a marker returning under a different build cannot be the in-process cache
 -- a relog hands back. 70009 fixed loading for real, and r14 reads that
--- correctly with nothing here to keep current.
+-- correctly with nothing here to keep current. r15 (pinned) also honours the
+-- "already told" latch r12 wrote, so a player r12 told is not told again at the
+-- next patch (LibGroupBuffs #31).
 local MEASURED_ON_BUILD = "70009"
 
 -- config-owner: begin

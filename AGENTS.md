@@ -184,9 +184,9 @@ included (one line saying so). Its test seam is `Magely._test`.
 
 One rule Wildly does not need: an Amplify or Dampen **landing** can give a closed window its row
 (Intellect untracked, the rest "when detected"). A relevant `UNIT_AURA` refreshes an open window;
-for a closed one it queues **one** check per burst (`ReopenForAura`: `ui:Open` is not coalesced,
-LibGroupBuffs #22, and `UNIT_AURA` is the noisiest event there is), never in combat, and only
-through `WantsOpen` and `ui:Open`, so a player's close still wins.
+for a closed one `ReopenForAura` asks `ui:Open(0.35)` - never in combat, and only when
+`WantsOpen` - and the library coalesces a burst into one rebuild (since r14, LibGroupBuffs #22),
+with a player's close still winning through its generation check.
 
 ### Buff definitions
 
@@ -280,9 +280,16 @@ Magely v1.0.0 shipped before the fix.
 
 `MEASURED_ON_BUILD` in `MagelyConfig.lua` is **70009**, the build Priestly last re-measured
 (Spotnick2/priestly#60: API dump, `/pprobe` in and out of combat, the click bench).
-`SV_BROKEN_ON_BUILD` is **69977**, the last build SavedVariables were measured broken on - 70009
-fixed them - and it does not follow the client forward. `test_config_seam` pins both independently
-of the source, so bump the test with the constants after re-measuring - never to make it pass.
+`test_config_seam` pins it independently of the source, so bump the test with the constant after
+re-measuring - never to make it pass.
+
+**There is no second, settings-check constant** (`SV_BROKEN_ON_BUILD` is gone, and
+`test_config_seam` fails if it or `svBrokenOnBuild` comes back). Since LibGroupBuffs r14 the load
+check decides from the marker's own recorded build: a marker returning under a different build was
+read after a restart, which is the fix; one from the running build is a relog or `/reload` and is
+silent. A `loads` latch keeps later patches quiet, and r15 also reads the `announced` latch r12
+wrote, so nobody is told twice (LibGroupBuffs #31). Do not reintroduce a host build number for it:
+that is what announced a fix on every relog (LibGroupBuffs #27).
 
 - **Never verify persistence by reading the SV file or diffing it against `.bak`.** It always
   looks populated because `EnsureDefaults` rewrites every default each session. Count launches
