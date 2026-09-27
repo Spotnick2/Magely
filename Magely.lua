@@ -355,20 +355,15 @@ end
 -- Only a window that would open by itself (WantsOpen: never over the player's
 -- close), and never in combat, where the auras cannot be read to decide.
 --
--- Coalesced here, because ui:Open is not (LibGroupBuffs issue #22) and
--- UNIT_AURA is the noisiest event there is: every update or removal counts
--- as relevant, since those arrive without a spell to filter on. One queued
--- check per burst, which asks again when it fires and opens through ui:Open,
--- never ui:Update, so a close in between still wins.
-local g_ReopenQueued = false
-
+-- UNIT_AURA is the noisiest event there is - every update or removal counts
+-- as relevant, since those arrive without a spell to filter on - so a burst
+-- must cost one rebuild. ui:Open coalesces since LibGroupBuffs r14 (#22): a
+-- request no sooner than the one already waiting is dropped, and a close in
+-- between still wins through its generation check. So this only guards; the
+-- library does the coalescing.
 local function ReopenForAura()
-    if g_ReopenQueued or InCombatLockdown() or not WantsOpen() then return end
-    g_ReopenQueued = true
-    C_Timer.After(0.35, function()
-        g_ReopenQueued = false
-        if not ui:IsVisible() and not InCombatLockdown() and WantsOpen() then ui:Open(0) end
-    end)
+    if InCombatLockdown() or not WantsOpen() then return end
+    ui:Open(0.35)
 end
 
 -- ─── Events ──────────────────────────────────────────────────────────────────

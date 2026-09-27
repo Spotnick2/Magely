@@ -59,10 +59,9 @@ local DEFAULTS = {
 -- `config-owner` region - the code that creates the tables, seeds defaults
 -- and keeps the learned-duration cache. Everything else calls the setter.
 
--- Which build the notes Magely relies on were measured on, and the build where
--- SavedVariables are measured broken. In the SOURCE, because through 69977 it
--- was the one thing that survived a restart, and it is still the one thing no
--- client bug can lose. Bump MEASURED_ON_BUILD after
+-- Which build the notes Magely relies on were measured on. In the SOURCE,
+-- because through 69977 it was the one thing that survived a restart, and it
+-- is still the one thing no client bug can lose. Bump MEASURED_ON_BUILD after
 -- re-measuring (AGENTS.md); the library warns at every real login until then.
 --
 -- MEASURED_ON_BUILD is 70009: Priestly re-measured it (Spotnick2/priestly#60)
@@ -70,11 +69,21 @@ local DEFAULTS = {
 -- Magely or the library calls; /pprobe out of combat and in combat, aura
 -- secrecy unchanged; the click bench, one cast per click.
 --
--- SV_BROKEN_ON_BUILD stays 69977, the last build SavedVariables were measured
--- broken on (70009 fixed them). It names a broken build and does not follow the
--- client forward: on it, a returning marker is the client's in-process cache.
+-- There is no companion constant for the settings check. Magely used to pass
+-- SV_BROKEN_ON_BUILD - 69977, the last build SavedVariables were measured
+-- broken on - and the library trusted a returning marker on every build
+-- except that one, so every relog on a build the constant did not name
+-- announced a fix that had not happened. This addon, Priestly and Wildly all
+-- shipped that when 69913 patched to 69977 without fixing loading.
+--
+-- As of LibGroupBuffs r14 the library reads the marker's OWN recorded build: a
+-- build changes only when the client is patched, a patch requires a full exit,
+-- so a marker returning under a different build cannot be the in-process cache
+-- a relog hands back. 70009 fixed loading for real, and r14 reads that
+-- correctly with nothing here to keep current. r15 (pinned) also honours the
+-- "already told" latch r12 wrote, so a player r12 told is not told again at the
+-- next patch (LibGroupBuffs #31).
 local MEASURED_ON_BUILD = "70009"
-local SV_BROKEN_ON_BUILD = "69977"
 
 -- config-owner: begin
 -- The two saved tables, created on first use. MagelyDB holds the settings
@@ -103,7 +112,6 @@ local settings = Magely.Settings.New({
         { label = "account-wide",  get = AccountCheckStore },
     },
     measuredOnBuild = MEASURED_ON_BUILD,
-    svBrokenOnBuild = SV_BROKEN_ON_BUILD,
     report = function(text, kind)
         if not DEFAULT_CHAT_FRAME then return end
         if kind == "settingsLoaded" then text = "|cff55ff55" .. text .. "|r" end
@@ -470,9 +478,10 @@ end
 --
 -- Both checks live in LibGroupBuffs-1.0's Settings.lua. The load check keeps a
 -- `svLoadCheck` marker in each scope - written every session, never in
--- DEFAULTS - and says so once when one comes back on a real login on a build
--- other than SV_BROKEN_ON_BUILD. The build check warns at every real login on
--- a build other than MEASURED_ON_BUILD, deliberately unlatched.
+-- DEFAULTS - and says so once when one comes back carrying a build OTHER than
+-- the one running, which only a patched client can produce. The build check
+-- warns at every real login on a build other than MEASURED_ON_BUILD,
+-- deliberately unlatched.
 
 function Magely_CheckClientBuild()
     settings:CheckBuild()
@@ -1126,6 +1135,5 @@ Magely._testConfig = {
     forgetReported       = function() g_ReportedUnknown = {} end,
     IsMage               = IsMage,
     MEASURED_ON_BUILD    = MEASURED_ON_BUILD,
-    SV_BROKEN_ON_BUILD   = SV_BROKEN_ON_BUILD,
     eventFrame           = function() return cfgFrame end,
 }

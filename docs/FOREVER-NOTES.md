@@ -85,8 +85,11 @@ The client moved to **70009** and SavedVariables load back. Priestly re-measured
 (Spotnick2/priestly#60), and Magely followed:
 
 - `MEASURED_ON_BUILD` is **70009**, so the "tested on another build" notice is silent there.
-- `SV_BROKEN_ON_BUILD` stays **69977**, the last broken build, so on 70009 the load check is free
-  to announce that settings came back - which is the right answer.
+- The settings check needs no build constant since LibGroupBuffs r14: it announces when a marker
+  saved on a **different** build comes back - which can only have been read after a restart - and
+  says nothing to one from the running build (a relog). On the first 70009 login after 69977 it
+  announces the fix once; a latch keeps later patches quiet, including r12's (r15, LibGroupBuffs
+  #31).
 
 ## The cooldown pane's questions - `Tools/MagelyProbe`
 
