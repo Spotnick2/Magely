@@ -57,9 +57,11 @@ local MAGE_ICON = "Interface\\Icons\\ClassIcon_Mage"
 --
 -- `duration` is only a seed for the timer gradient. The real value is learned
 -- from live auras, per spell name, because Forever's durations differ from
--- both TBC and Vanilla and are still moving during the beta. One seed per row,
--- so Intellect's is the single form's 30 minutes; Arcane Brilliance runs an
--- hour, and is learned under its own name the first time it is seen.
+-- both TBC and Vanilla and are still moving during the beta. Arcane Intellect
+-- showed 59:56 remaining just after a cast on 70009 (docs/FOREVER-NOTES.md),
+-- so Vanilla's 30 minutes was too short; 60 is provisional until a live read
+-- reports the total. Arcane Brilliance shares the row's seed until it is
+-- learned under its own name the first time it is seen.
 local DEFS = {
     {
         id          = "intellect",
@@ -68,7 +70,7 @@ local DEFS = {
         sngl        = "Arcane Intellect",
         grp         = "Arcane Brilliance",
         fallbackIcon= "Interface\\Icons\\Spell_Holy_MagicalSentry",
-        duration    = 1800,
+        duration    = 3600,
     },
     {
         -- No group form: both clicks cast Amplify Magic, which is what the

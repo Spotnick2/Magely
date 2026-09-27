@@ -1,9 +1,9 @@
 # Magely on WoW: Forever — what is measured, and what is not
 
-Nobody working on the port has a Mage on Forever. This file keeps the line between what Magely
-relies on that **has been measured in game** (by Priestly, on the same library) and what is
-**Mage-specific and has not**, so the first tester knows what to look at and nobody mistakes an
-assumption for a measurement.
+This file keeps the line between what Magely relies on that **has been measured in game** - by
+Priestly on the same library, by the probe, or on a Mage - and what is **Mage-specific and has not**,
+so a tester knows what to look at and nobody mistakes an assumption for a measurement. v1.0.0
+shipped before anyone on the port had a Mage; the first pass on one is recorded below.
 
 Client: WoW: Forever 1.60.1, builds 69913, 69977 and - from 2026-09-25 - **70009**, built Sep 23
 (`MEASURED_ON_BUILD` is 70009; see "Build 70009" below).
@@ -28,6 +28,18 @@ in game. The measurements are in `C:\Projects\Priestly\docs\FOREVER-PROBE.md` an
 | Registering `COMBAT_LOG_EVENT_UNFILTERED` is a forbidden action | PORTING §3 (Stakeout probe) |
 | The options panel's templates exist | Priestly probe §3 |
 
+## Measured on a Mage
+
+First in-game pass, 2026-09-27, build **70009**, a low-level Mage in a party of two:
+
+| Question | Answer |
+|---|---|
+| Is Arcane Intellect **1459** reported known once learned? | **Yes**: its row appears. |
+| What are the clicks wired to without Arcane Brilliance? | **Arcane Intellect on both buttons**, as the click hint shows, naming the member it is aimed at: "Left Arcane Intellect on Karuzo Memphisto / Right Arcane Intellect on Karuzo Memphisto". That is the wiring; a click being performed and landing is still on the checklist. |
+| How long does Arcane Intellect last? | **At least 59:56** - the remaining times read 59:48 and 59:56, so it is longer than Vanilla's 30 minutes, but the total is not measured (it could be more than 60). The row's seed is now 3600, provisionally. `/dump MagelyDB.learnedDurations` after a live read shows the duration the aura itself reports. |
+| Names in the popover | **Full names with surnames** (Karuzo Memphisto, Karuzo Macphisto), class-coloured, with the range marker green in range. |
+| The window | Visible in a party, headed "Magely dev" (a deployed build), with the plain Mage look (no 31-point talent yet) and the Intellect row green with its timer. Whether grouping opened it by itself is not shown by a still. |
+
 ## Mage-specific — NOT measured
 
 Each of these is an assumption until someone checks it on a Mage. Record the answer here, with the
@@ -35,11 +47,11 @@ build and date, when it is measured.
 
 | Assumption | Why it matters | How to check |
 |---|---|---|
-| Arcane Intellect **1459**, Amplify Magic **1008** and Dampen Magic **604** are reported "known" by `C_SpellBook.IsSpellKnown` once learned. (That the IDs **resolve**, with the right names, is measured - below.) | A known spell reported unknown is a row that never appears | Learn the spell; its row appears |
+| Amplify Magic **1008** and Dampen Magic **604** are reported "known" once learned (Arcane Intellect's is measured - above; that the IDs **resolve** is measured - below) | A known spell reported unknown is a row that never appears | Learn the spell (levels 18 and 12); its row appears in "always" mode |
 | Arcane Brilliance **23028** reaches the whole raid, as Forever's Prayers do | Left-click and the per-subgroup rows (LibGroupBuffs #19) | Level 56 |
 | Arcane Powder **17020** is Brilliance's reagent (the item exists - below) | The footer | Level 56 |
 | Arcane Power **12042**, Combustion **11129**, Ice Barrier **11426** are learned as the 31-point talents (the IDs resolve - below) | The spec look | Level 40+ |
-| Durations. The seeds are Intellect 30 min and Amplify / Dampen 10 min (the TBC build's values). Brilliance shares Intellect's row, so until its own duration is learned its timer is scaled against 30 min too; it is expected to last 60 min. The engine learns every real value per spell name from the first live aura | Timer colours before the first live read | Watch a bar go down; `/dump MagelyDB.learnedDurations` |
+| Durations: Amplify and Dampen seeded 10 min (the TBC build's); Arcane Intellect seeded 60 min, provisionally - at least 59:56 is measured, above; Brilliance shares that seed until its own is learned. The engine learns every real value per spell name from the first live aura | Timer colours before the first live read | Watch a bar go down; `/dump MagelyDB.learnedDurations` |
 | A wired unit token handed to another player by a roster change mid-fight | A click can land on the wrong member until combat ends (known, unfixable - Priestly probe §14) | Reshuffle a raid in combat |
 | The instance names beyond the ones Priestly has stood in | Instance mode silently never fires on a misspelt key | Enter the instance with a mode on "by instance"; Magely reports an unknown name |
 
