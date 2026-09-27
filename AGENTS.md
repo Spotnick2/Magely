@@ -59,8 +59,8 @@ the port had a Mage - a deliberate exception to the rule under Validation, made 
 stated in the release notes.
 
 **There is a Mage now.** The first in-game pass on one (2026-09-27, build 70009) is recorded in
-`docs/FOREVER-NOTES.md`: Arcane Intellect known and wired, a 60-minute duration, surnames in the
-popover. What Magely shares with Priestly - the engine, the window, the settings path, the combat
+`docs/FOREVER-NOTES.md`: Arcane Intellect known and its clicks wired, at least 59:56 remaining
+after a cast (the total unmeasured), surnames in the popover. What Magely shares with Priestly - the engine, the window, the settings path, the combat
 rules - is taken as measured by Priestly. What is Mage-specific and not yet seen in play stays
 listed there as **unmeasured**: Amplify and Dampen (levels 18 and 12), their modes, instance mode
 in a dungeon, combat, raids. Record each as it is measured, and delete this section once the

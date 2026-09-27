@@ -58,8 +58,9 @@ local MAGE_ICON = "Interface\\Icons\\ClassIcon_Mage"
 -- `duration` is only a seed for the timer gradient. The real value is learned
 -- from live auras, per spell name, because Forever's durations differ from
 -- both TBC and Vanilla and are still moving during the beta. Arcane Intellect
--- runs 60 minutes on Forever (measured on 70009, docs/FOREVER-NOTES.md) - not
--- Vanilla's 30 - and Arcane Brilliance shares the row's seed until it is
+-- showed 59:56 remaining just after a cast on 70009 (docs/FOREVER-NOTES.md),
+-- so Vanilla's 30 minutes was too short; 60 is provisional until a live read
+-- reports the total. Arcane Brilliance shares the row's seed until it is
 -- learned under its own name the first time it is seen.
 local DEFS = {
     {

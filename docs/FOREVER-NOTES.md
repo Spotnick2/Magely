@@ -35,10 +35,10 @@ First in-game pass, 2026-09-27, build **70009**, a low-level Mage in a party of 
 | Question | Answer |
 |---|---|
 | Is Arcane Intellect **1459** reported known once learned? | **Yes**: its row appears. |
-| What do the clicks cast without Arcane Brilliance? | **Arcane Intellect on both buttons**, and the click hint says so, naming the member it lands on: "Left Arcane Intellect on Karuzo Memphisto / Right Arcane Intellect on Karuzo Memphisto". |
-| How long does Arcane Intellect last? | **60 minutes**: 59:48 and 59:56 remaining just after casting. Not Vanilla's 30, like Priestly's Fortitude. The row's seed is now 3600. |
+| What are the clicks wired to without Arcane Brilliance? | **Arcane Intellect on both buttons**, as the click hint shows, naming the member it is aimed at: "Left Arcane Intellect on Karuzo Memphisto / Right Arcane Intellect on Karuzo Memphisto". That is the wiring; a click being performed and landing is still on the checklist. |
+| How long does Arcane Intellect last? | **At least 59:56** - the remaining times read 59:48 and 59:56, so it is longer than Vanilla's 30 minutes, but the total is not measured (it could be more than 60). The row's seed is now 3600, provisionally. `/dump MagelyDB.learnedDurations` after a live read shows the duration the aura itself reports. |
 | Names in the popover | **Full names with surnames** (Karuzo Memphisto, Karuzo Macphisto), class-coloured, with the range marker green in range. |
-| The window | Opens in a party, titled "Magely", with the plain Mage look (no 31-point talent yet) and the Intellect row green with its timer. |
+| The window | Visible in a party, headed "Magely dev" (a deployed build), with the plain Mage look (no 31-point talent yet) and the Intellect row green with its timer. Whether grouping opened it by itself is not shown by a still. |
 
 ## Mage-specific — NOT measured
 
@@ -51,7 +51,7 @@ build and date, when it is measured.
 | Arcane Brilliance **23028** reaches the whole raid, as Forever's Prayers do | Left-click and the per-subgroup rows (LibGroupBuffs #19) | Level 56 |
 | Arcane Powder **17020** is Brilliance's reagent (the item exists - below) | The footer | Level 56 |
 | Arcane Power **12042**, Combustion **11129**, Ice Barrier **11426** are learned as the 31-point talents (the IDs resolve - below) | The spec look | Level 40+ |
-| Durations of Amplify and Dampen: seeded 10 min (the TBC build's). Arcane Intellect's 60 min is measured - above; Brilliance shares that seed until its own is learned. The engine learns every real value per spell name from the first live aura | Timer colours before the first live read | Watch a bar go down; `/dump MagelyDB.learnedDurations` |
+| Durations: Amplify and Dampen seeded 10 min (the TBC build's); Arcane Intellect seeded 60 min, provisionally - at least 59:56 is measured, above; Brilliance shares that seed until its own is learned. The engine learns every real value per spell name from the first live aura | Timer colours before the first live read | Watch a bar go down; `/dump MagelyDB.learnedDurations` |
 | A wired unit token handed to another player by a roster change mid-fight | A click can land on the wrong member until combat ends (known, unfixable - Priestly probe §14) | Reshuffle a raid in combat |
 | The instance names beyond the ones Priestly has stood in | Instance mode silently never fires on a misspelt key | Enter the instance with a mode on "by instance"; Magely reports an unknown name |
 
