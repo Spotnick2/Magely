@@ -54,19 +54,17 @@ The port lands in slices, one issue and PR each:
 4. **v1.0.0**, handed to testers for the in-game pass (below).
 5. **The cooldown pane**, after v1.0 (see below).
 
-Slices 1 to 4 are done and **v1.0.0 is the first Forever release. The in-game pass is NOT done**:
-there was no Mage available, so it was handed to players and testers - a deliberate exception to
-the rule under Validation, made by the owner and stated in the release notes. **No Magely build has
-been verified in game yet.** `docs/FOREVER-NOTES.md` separates what is measured (by Priestly, on
-the same library) from what is Mage-specific and unmeasured, and holds the testers' checklist.
-Record what is measured there, and delete this section once a pass has been done.
+Slices 1 to 4 are done and **v1.0.0 is the first Forever release**. It shipped before anyone on
+the port had a Mage - a deliberate exception to the rule under Validation, made by the owner and
+stated in the release notes.
 
-**Nobody working on this port has a Mage on Forever.** The in-game pass (slice 4) is handed to
-players and testers, as Wildly's was, and the release notes say no Magely build has been verified
-in game. What Magely shares with Priestly - the engine, the window, the settings path, the combat
-rules - is taken as measured by Priestly. What is Mage-specific stays listed as **unmeasured**
-until someone measures it: whether spell IDs 1459 / 23028 / 1008 / 604 and the spec spells
-resolve, the Amplify and Dampen durations, and the instance names beyond the ones Priestly checked.
+**There is a Mage now.** The first in-game pass on one (2026-09-27, build 70009) is recorded in
+`docs/FOREVER-NOTES.md`: Arcane Intellect known and wired, a 60-minute duration, surnames in the
+popover. What Magely shares with Priestly - the engine, the window, the settings path, the combat
+rules - is taken as measured by Priestly. What is Mage-specific and not yet seen in play stays
+listed there as **unmeasured**: Amplify and Dampen (levels 18 and 12), their modes, instance mode
+in a dungeon, combat, raids. Record each as it is measured, and delete this section once the
+checklist there has been run.
 
 `H.NOT_YET_PORTED` in `tests/harness.lua` is empty. It stays, with the check in `test_bridge`, until
 this section is deleted. Update this section as slices land, and delete it when the port is done.
@@ -387,10 +385,9 @@ differences. Before stubbing a new global, confirm it exists in the newest
 never add one because a test failed. Strict globals do not cover **methods** — for anything built
 on a widget method, execute it and assert what it produced.
 
-In game — **nothing ships without this pass**. The one exception so far is v1.0.0, which the owner
-released with the pass handed to testers because nobody on the port has a Mage (see Port status).
-Do not treat that as the rule: the next release after a Mage is available needs the pass. The
-checklist is in `docs/FOREVER-NOTES.md`:
+In game — **nothing ships without this pass**. The one exception so far is v1.0.0, released
+before anyone on the port had a Mage (see Port status). There is one now, so the next release needs
+the pass. The checklist is in `docs/FOREVER-NOTES.md`:
 
 ```powershell
 pwsh Tools\deploy.ps1
