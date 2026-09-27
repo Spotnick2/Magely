@@ -94,7 +94,9 @@ catch up:
   client build changes.
 * **Settings now stay between sessions.** Up to game build 69977 a client bug wiped every addon's
   settings at each login: Forever wrote them to disk and never read them back. Build 70009 fixed
-  it, and Magely says so in chat the first time it sees your settings come back.
+  it. If you played through that patch, Magely says so in chat once it sees your settings survive
+  it — it can only tell by watching them come back across a game update, so a fresh install on an
+  already-fixed build simply works and says nothing.
 
 ---
 
