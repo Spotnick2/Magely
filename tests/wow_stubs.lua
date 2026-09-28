@@ -59,5 +59,5 @@ WoW.allowGlobal(
     "Magely_ForceRebuild", "Magely_ApplyAlpha", "Magely_OnSoloToggle",
     "Magely_ScheduleRefresh", "Magely_OpenConfig", "Magely_SetConfig",
     "Magely_GetFrameAlpha", "Magely_IsBuffEnabled", "Magely_FrameLocked",
-    "Magely_PopoverSide"
+    "Magely_PopoverSide", "Magely_ShowClickHints", "Magely_ShowSolo"
 )
