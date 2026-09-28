@@ -1,6 +1,6 @@
 # Magely Changelog
 
-## Unreleased
+## v1.0.1 - 2026-09-27
 
 ### Changed
 - **A new look.** The window is drawn in glass: a translucent, softly lit panel with rounded
