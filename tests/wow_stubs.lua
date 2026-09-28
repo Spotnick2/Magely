@@ -38,6 +38,18 @@ WoW.SetPlayerDefaults({ name = "Magely Testcase", class = "MAGE", level = 20 })
 -- typo or an API that quietly went away. These are Magely's own.
 ------------------------------------------------------------
 
+-- Recorded as well as allowed, so tests/test_bridge.lua can check this list
+-- against the guards in the source. Every `if Magely_X then` in the addon is
+-- there because the config file can fail to load; a name missing from here
+-- turns that guard into a stub error, and the branch it guards can never be
+-- tested.
+WoW.hostGlobals = {}
+local sharedAllow = WoW.allowGlobal
+function WoW.allowGlobal(...)
+    for i = 1, select("#", ...) do WoW.hostGlobals[(select(i, ...))] = true end
+    return sharedAllow(...)
+end
+
 WoW.allowGlobal(
     -- The addon and its saved tables.
     "Magely", "MagelyDB", "MagelySVCheck",
@@ -45,5 +57,7 @@ WoW.allowGlobal(
     -- guarded (`if Magely_ForceRebuild then`), so a test that loads the config
     -- on its own must be able to read them as nil.
     "Magely_ForceRebuild", "Magely_ApplyAlpha", "Magely_OnSoloToggle",
-    "Magely_ScheduleRefresh"
+    "Magely_ScheduleRefresh", "Magely_OpenConfig", "Magely_SetConfig",
+    "Magely_GetFrameAlpha", "Magely_IsBuffEnabled", "Magely_FrameLocked",
+    "Magely_PopoverSide"
 )
