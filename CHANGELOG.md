@@ -1,5 +1,13 @@
 # Magely Changelog
 
+## Unreleased
+
+### Changed
+- **A new look.** The window is drawn in glass now: a translucent, softly lit panel with rounded
+  corners instead of the flat Blizzard dialog box, and every buff bar filled the same way. Nothing
+  moved and nothing changed how it works — same rows, same clicks, same colours telling you who is
+  missing what.
+
 ## v1.0.0 - 2026-09-24
 
 **Magely now runs on World of Warcraft: Forever.** This is the first release for the Forever client
