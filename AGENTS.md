@@ -175,12 +175,20 @@ coloured `|cffRRGGBBMagely|r`), though the library's `AGENTS.md` does not list i
 `Magely.lua` exposes, for the config: `Magely_ScheduleRefresh`, `Magely_ForceRebuild` (does nothing
 in combat for an open window - the library rebuilds it at combat end - and **never reopens a
 window the player closed**; it goes through `WantsOpen`), `Magely_OnSoloToggle`,
-`Magely_ApplyAlpha`, and `Magely.auraNames` (the Amplify and Dampen names, for detect mode). It
-decides when the window opens, exactly as Wildly does: at login for a Mage in a group (or solo
-mode) unless `visible` is false, or later when the spells arrive; on joining a group, overriding a
-close (but not the roster arriving just after login); never on other roster churn, a ready check,
-a settings change or a zone change over a close; nothing at all on another class, slash commands
-included (one line saying so). Its test seam is `Magely._test`.
+`Magely_ApplyAlpha`, and `Magely.auraNames` (the Amplify and Dampen names, for detect mode).
+
+It no longer decides **when** the window opens. That is `lib.Visibility` (LibGroupBuffs r24):
+Magely builds one `vis` with its class, solo setting and saved `visible`, and its events report what
+happened — `vis:Login()`, `ReadyCheck()`, `GroupJoined()`, `RosterChanged()`, `SoloToggled(on)`,
+`ContentChanged()`. **Do not add a window-policy branch to `Magely.lua`.** This used to live here, in
+Priestly and in the third addon as three copies, and every defect they produced was one found in a
+single addon and left standing in the other two (LibGroupBuffs#22 lists them). `ContentChanged` is
+one method for every source — a setting, a spell learned, a tank appearing, zoning — because
+splitting it is what grew the copies.
+
+What stays Magely's is whether a notification is worth making at all: the class it is for, and whether it has
+anything to report: an Amplify landing **in combat** is not reported at all, because auras cannot
+be read then and only Magely knows that about its own rows. Its test seam is `Magely._test`.
 
 One rule Wildly does not need: an Amplify or Dampen **landing** can give a closed window its row
 (Intellect untracked, the rest "when detected"). A relevant `UNIT_AURA` refreshes an open window;

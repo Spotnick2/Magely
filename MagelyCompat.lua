@@ -19,7 +19,7 @@ Magely = Magely or {}
 -- feature check: behaviour changes cannot be feature-detected. r12 is the
 -- first with lib.Status. Keep this equal to the tag .pkgmeta pins;
 -- tests/test_manifest.lua checks that.
-local NEEDS_MINOR = 21
+local NEEDS_MINOR = 24
 
 local lib, minor
 if LibStub then lib, minor = LibStub("LibGroupBuffs-1.0", true) end
@@ -100,6 +100,10 @@ Magely.Settings = lib.Settings
 Magely.Engine = lib.Engine
 -- The buff window; Magely.lua builds Magely's from it.
 Magely.UI = lib.UI
+-- When that window opens itself and when it must not. Magely still owns its
+-- events and its slash commands; this decides what each of them means for the
+-- window, in one place instead of three (LibGroupBuffs#22).
+Magely.Visibility = lib.Visibility
 
 -- Magely's own record of the events this client rejected, for
 -- `/dump Magely.eventFailures`. The library also keeps it, as
