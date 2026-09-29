@@ -140,7 +140,10 @@ local function RefreshSpellData()
     engine:RefreshSpells()
     -- The config's "show when detected" mode needs the localized aura names,
     -- and it loads before this file. The tables are the defs' own, refreshed
-    -- in place.
+    -- in place. It needs the engine too, to read those auras through whatever
+    -- aura pass is open rather than walking the roster a second time - and it
+    -- cannot take either at load, hence both being published here.
+    Magely.engine = engine
     Magely.auraNames = Magely.auraNames or {}
     for _, d in ipairs(DEFS) do
         if d.id ~= "intellect" then Magely.auraNames[d.id] = d.names end

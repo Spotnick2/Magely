@@ -8,7 +8,7 @@
 
 dofile("tests/wow_stubs.lua")
 local H = dofile("tests/harness.lua")
-local _, TC = H.loadAddon()
+local T, TC = H.loadAddon()
 
 ------------------------------------------------------------
 -- Defaults on a fresh install
@@ -243,6 +243,12 @@ local ord = { 1 }
 
 -- The names come from Magely.lua, resolved from spell IDs; until then nothing
 -- can be matched.
+--
+-- RefreshSpellData publishes the engine and the names together, and the detect
+-- scan reads auras through the engine so its reads join the window's aura pass
+-- - so standing in for that function means standing in for both halves, not
+-- just the one this section is about.
+T.RefreshSpellData()
 Magely.auraNames = nil
 WoW.SetAura("party1", "Amplify Magic", 600, 400)
 H.eq(Magely_ShouldShowBuff("amplify", groups, ord), false,
@@ -266,6 +272,42 @@ H.secrecy(true)
 H.eq(Magely_ShouldShowBuff("amplify", groups, ord), true,
     "an unreadable roster keeps the row rather than dropping it at the pull")
 H.secrecy(false)
+
+-- Detect mode runs from ActiveDefs, immediately before the rows ask about the
+-- same members. Reading through the engine puts it inside the aura pass the
+-- window opens around a rebuild, so it walks everybody once and the rows that
+-- follow walk nobody. Going straight to API.ReadBuff walked them all twice.
+WoW.reset()
+MagelyDB = nil
+Magely_EnsureDefaults()
+T.RefreshSpellData()
+Magely.auraNames = { amplify = { "Amplify Magic" }, dampen = { "Dampen Magic" } }
+local eng = Magely.engine
+H.check(eng ~= nil, "the engine is published for the config to read through")
+local wide = {}
+for i = 1, 8 do
+    WoW.SetUnit("party" .. i, { name = "Mage" .. i, guid = "P" .. i, class = "MAGE" })
+    for a = 1, 12 do WoW.SetAura("party" .. i, "Filler" .. a, 600, 300) end
+    wide[#wide + 1] = { unit = "party" .. i }
+end
+WoW.byNameBlind = true          -- force the walk, which is the path being shared
+
+WoW.auraReads.byIndex = 0
+H.eq(Magely_ShouldShowBuff("amplify", { [1] = wide }, { 1 }), false, "nobody has Amplify")
+local alone = WoW.auraReads.byIndex
+H.check(alone > 0, "the scan really does walk auras: " .. alone .. " reads")
+
+eng:BeginAuraPass()
+WoW.auraReads.byIndex = 0
+H.eq(Magely_ShouldShowBuff("amplify", { [1] = wide }, { 1 }), false, "same answer inside a pass")
+H.eq(WoW.auraReads.byIndex, alone, "which costs the same walk, once")
+WoW.auraReads.byIndex = 0
+local amplifyDef
+for _, d in ipairs(T.DEFS) do if d.id == "amplify" then amplifyDef = d end end
+for _, m in ipairs(wide) do eng:BuffRem(m.unit, amplifyDef) end
+H.eq(WoW.auraReads.byIndex, 0, "and the rows that follow it read nothing at all")
+eng:EndAuraPass()
+WoW.byNameBlind = false
 
 H.eq(Magely_ShouldShowBuff("intellect", groups, ord), true, "Intellect has no rule of its own")
 MagelyDB.amplifyMode = "always"
