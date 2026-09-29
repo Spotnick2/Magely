@@ -157,43 +157,6 @@ end
 
 -- ─── State ───────────────────────────────────────────────────────────────────
 local g_IsMage = false
--- How many people we have SEEN in the group, or nil for "we have not looked
--- yet". The difference is the whole point: joining is the one thing that
--- reopens a window the player deliberately closed, and a join is a 0-to-n
--- change where the 0 was actually observed.
---
--- GetNumGroupMembers() can still read 0 at PLAYER_LOGIN while already in a
--- group - the roster lands a moment later - so starting this at 0 made that
--- catch-up look exactly like joining.
---
--- nil rather than a few seconds' grace, which is what this was until
--- Spotnick2/priestly#69. The grace period is a guess at the wrong question: it
--- has to outlast the slowest loading screen without swallowing a real invite,
--- it is defeated entirely by a roster event arriving before PLAYER_LOGIN (the
--- events are registered at file scope, and the anchor is still 0 then), and
--- when it is wrong it fails silently and looks exactly like the bug it
--- replaced. "Have we ever seen the roster?" needs no clock.
-local g_LastGroupSize = nil
-
--- On its own that costs the thing it protects: log in alone, get invited, and
--- if the client never sent a zero-member roster in between, the invite IS the
--- first observation and would not count as joining. So the roster is the
--- FALLBACK and GROUP_JOINED is the answer - the client saying you joined
--- rather than us inferring it from a number changing.
---
--- Set by the event, spent by the roster update that follows it. Declared on
--- 70009 (Event.PartyInfo.GroupJoined), and declared is not working on this
--- client, so it makes the answer certain where it fires and changes nothing
--- where it does not.
-local g_JoinedPending = false
-
--- Would the window open by itself right now? In a group, or solo mode - and
--- never over a deliberate close.
-local function WantsOpen()
-    if not MagelyDB or MagelyDB.visible == false then return false end
-    return GetNumGroupMembers() > 0 or Magely_ShowSolo()
-end
-
 -- Settings writes go through MagelyConfig's single write path. Guarded: if
 -- MagelyConfig failed to load, a bare call would throw from a drag or a
 -- refresh instead of quietly doing nothing.
@@ -322,6 +285,23 @@ local ui = Magely.UI.New({
     end,
 })
 
+-- When the window opens itself, and when it must not. Magely still owns its
+-- events, its slash commands and its class; this decides what each of them
+-- means for the window. It lived here, in Priestly and in the third addon as
+-- three near-identical copies, and the copies produced six defects - each
+-- found in one, fixed there, and left standing in the others
+-- (LibGroupBuffs#22).
+local vis = Magely.Visibility.New({
+    ui            = ui,
+    isMyClass     = function() return g_IsMage end,
+    showSolo      = function() return Magely_ShowSolo() end,
+    getPreference = function()
+        if not MagelyDB then return nil end
+        return MagelyDB.visible
+    end,
+    setPreference = function(v) SetConfig("visible", v) end,
+})
+
 -- ─── Global hooks for MagelyConfig.lua ──────────────────────────────────────
 
 function Magely_ScheduleRefresh()
@@ -343,28 +323,19 @@ end
 -- combat end. A closed one that would open has nothing recorded for combat
 -- end to act on, so it asks ui:Open, which remembers a show made under
 -- lockdown and carries it out when the fight ends.
+-- Something may have given the window rows, or taken them away: a setting, a
+-- spell learned, a tank appearing, an aura landing. The library decides what
+-- that means for a window that is open, one the player closed, and one that
+-- closed itself for want of rows.
 function Magely_ForceRebuild()
-    if not g_IsMage then return end
-    if ui:IsVisible() then
-        if not InCombatLockdown() then ui:Open(0.1) end
-    elseif WantsOpen() then
-        ui:Open(0.1)
-    end
+    vis:ContentChanged()
 end
 
 -- Called when the solo checkbox is toggled in config. Not refused in combat:
 -- ui:Open and ui:Close both remember what was asked and carry it out when the
 -- fight ends, so ticking the box mid-fight is honoured rather than lost.
 function Magely_OnSoloToggle(enabled)
-    if not g_IsMage then return end
-    if enabled then
-        if not ui:IsVisible() then
-            SetConfig("visible", true)
-            ui:Open(0.1)
-        end
-    elseif GetNumGroupMembers() == 0 then
-        ui:Close()
-    end
+    vis:SoloToggled(enabled)
 end
 
 function Magely_ApplyAlpha()
@@ -372,8 +343,9 @@ function Magely_ApplyAlpha()
 end
 
 -- An aura that could bring a row back, arriving while the window is closed.
--- Only a window that would open by itself (WantsOpen: never over the player's
--- close), and never in combat, where the auras cannot be read to decide.
+-- Only a window that would open by itself - never over the player's close,
+-- which the library decides - and never in combat, where the auras cannot be
+-- read to decide anything.
 --
 -- UNIT_AURA is the noisiest event there is - every update or removal counts
 -- as relevant, since those arrive without a spell to filter on - so a burst
@@ -381,9 +353,13 @@ end
 -- request no sooner than the one already waiting is dropped, and a close in
 -- between still wins through its generation check. So this only guards; the
 -- library does the coalescing.
+-- The combat guard stays HERE, and only here: whether an aura is worth
+-- reporting is Magely's to know - auras cannot be read in combat, so reopening
+-- for one would show a window that cannot know what it is showing. What that
+-- report MEANS for the window is the library's.
 local function ReopenForAura()
-    if InCombatLockdown() or not WantsOpen() then return end
-    ui:Open(0.35)
+    if InCombatLockdown() then return end
+    vis:ContentChanged()
 end
 
 -- ─── Events ──────────────────────────────────────────────────────────────────
@@ -437,12 +413,9 @@ evtFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         -- we have seen in it. Said out loud rather than left to the file being
         -- re-executed, because that is what makes the rule true rather than
         -- incidentally true.
-        g_LastGroupSize = nil
-        g_JoinedPending = false
-        -- The size is deliberately NOT recorded here: WantsOpen asks the
-        -- client directly, and a 0 here may only mean the roster has not
-        -- arrived. Recording it is what made the arrival look like a join.
-        if WantsOpen() then ui:Open(0.6) end
+        -- A new session, and the auto-open decision with it: in a group or
+        -- solo mode, and never over a window the player closed.
+        vis:Login()
 
         DEFAULT_CHAT_FRAME:AddMessage(
             "|cff3fc7eb[Magely]|r Loaded. Auto-opens when you join a group. " ..
@@ -454,9 +427,7 @@ evtFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     if not g_IsMage then return end
 
     if event == "READY_CHECK" then
-        -- A ready check is a good moment to rebuff, but not a reason to
-        -- override someone who closed the window.
-        if not MagelyDB or MagelyDB.visible ~= false then ui:Open(0.4) end
+        vis:ReadyCheck()
 
     elseif event == "UNIT_AURA" then
         -- Checked against every def, not only the visible ones: an Amplify
@@ -478,37 +449,15 @@ evtFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         ui:ScheduleRefresh()
 
     elseif event == "GROUP_JOINED" then
-        -- The client saying it, rather than us inferring it. Latched rather
-        -- than acted on here: the roster that follows knows how many people
-        -- there are, and acting twice would open the window and then decide
-        -- again whether it should be open.
-        g_JoinedPending = true
+        vis:GroupJoined()
 
     elseif event == "RAID_ROSTER_UPDATE" or event == "GROUP_ROSTER_UPDATE" then
         -- Unit tokens are reassigned.
         engine:PruneCache()
-        local n = GetNumGroupMembers()
-        -- Joining a group is the one case that reopens a window the user
-        -- closed: that is the addon's advertised behaviour. Any other roster
-        -- churn leaves a deliberate close alone.
-        -- GROUP_JOINED if the client sent one, and otherwise the roster: nil
-        -- is not 0, so the first roster we ever see tells us where we are and
-        -- not that somebody just invited us. The event is what makes logging
-        -- in alone and then being invited work, because there may be no
-        -- zero-member roster in between for the fallback to measure against.
-        local joined = g_JoinedPending or (g_LastGroupSize == 0 and n > 0)
-        g_JoinedPending = false
-        g_LastGroupSize = n
-        if joined then SetConfig("visible", true) end
-        if n > 0 and not ui:IsVisible()
-            and (joined or not MagelyDB or MagelyDB.visible ~= false)
-        then
-            ui:Open(0.5)
-        elseif n == 0 and not Magely_ShowSolo() then
-            ui:Close()  -- auto-close, not manual (unless solo mode)
-        else
-            ui:ScheduleRefresh()
-        end
+        -- The host's own caches first, then the decision: the library
+        -- reads the roster to make it, so anything that must be
+        -- invalidated has to be invalidated before the call.
+        vis:RosterChanged()
 
     elseif event == "PLAYER_TALENT_UPDATE" or event == "SPELLS_CHANGED"
         or event == "ACTIVE_TALENT_GROUP_CHANGED"
@@ -521,12 +470,14 @@ evtFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         -- then.
         RefreshSpellData()
         ui:ApplyAppearance()
-        if ui:IsVisible() and not InCombatLockdown() then
-            ui:Open(0.3)
-        elseif ui:IsVisible() then
+        -- A rebuild: what a respec or a new spell changes is which rows
+        -- exist, and the library decides whether a closed window should come
+        -- back for them. In combat an open window can only move its counts,
+        -- and the rebuild follows the fight.
+        if ui:IsVisible() and InCombatLockdown() then
             ui:RefreshFooter()
-        elseif WantsOpen() then
-            ui:Open(0.3)
+        else
+            vis:ContentChanged()
         end
 
     elseif event == "PLAYER_REGEN_ENABLED" then
