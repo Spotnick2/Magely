@@ -252,7 +252,8 @@ end
 --
 -- Rows, popover, clicks, dragging, the ticker and what combat defers are shared
 -- with Priestly and Wildly. Magely supplies its title, colours, spec icon,
--- reagent and config, and decides when the window opens; the events and slash
+-- reagent and config. WHEN the window opens is the library's too, through
+-- the policy object built below; the events and slash
 -- commands below call the ui's methods.
 local ui = Magely.UI.New({
     engine  = engine,
