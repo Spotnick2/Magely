@@ -403,11 +403,19 @@ end
 -- Anyone in these groups carrying one of `names`? A read the client refuses
 -- (combat aura secrecy) counts as yes: it is not evidence that nobody has the
 -- buff, and making a row vanish at the pull would be worse than leaving it.
+-- Read through the ENGINE, not the compat layer: this runs from ActiveDefs,
+-- immediately before the rows ask about the same members, so going straight to
+-- API.ReadBuff would walk everybody's auras a second time. The engine routes
+-- the read through whatever aura pass the window has open.
+--
+-- No guard on Magely.engine: RefreshSpellData publishes it BEFORE
+-- Magely.auraNames, so `names` being set is already proof the engine is.
 local function DetectedInGroup(groups, ord, names)
     if not groups or not ord or not names then return false end
+    local eng = Magely.engine
     for _, gn in ipairs(ord) do
         for _, m in ipairs(groups[gn] or {}) do
-            local status = API.ReadBuff(m.unit, names)
+            local status = eng:ReadAura(m.unit, names)
             if status == "HAS" or status == "BLOCKED" then return true end
         end
     end
