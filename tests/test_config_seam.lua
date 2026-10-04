@@ -13,6 +13,19 @@ dofile("tests/wow_stubs.lua")
 local H = dofile("tests/harness.lua")
 local _, TC = H.loadAddon()
 
+-- The build notice speaks only in a development copy; a release keeps quiet.
+-- The stub reports a release-shaped version, so the checks that want to hear
+-- the notice run as `dev`, what Tools/deploy.ps1 writes, and the release case
+-- is checked on its own at the end.
+local releaseMetadata = C_AddOns.GetAddOnMetadata
+local function runAsVersion(version)
+    C_AddOns.GetAddOnMetadata = function(_, key)
+        if key == "Version" then return version end
+        return nil
+    end
+end
+runAsVersion("dev")
+
 local MEASURED = TC.MEASURED_ON_BUILD
 local BROKEN = "69977"   -- a test fixture: "a build older than the one running"
 local FIXED = "70123"    -- any build other than the two above
@@ -367,5 +380,23 @@ Magely_HandleEnteringWorld(true, false)
 H.check(said(before):find("tested on", 1, true),
     "it warns again at the next real login, until someone re-measures")
 H.eq(MagelyDB.warnedBuild, nil, "and records nothing that could silence it")
+
+-- An unpackaged checkout still carries the packager's token: also a
+-- development copy.
+runAsVersion("@project-version@")
+freshSession(FIXED)
+before = #WoW.messages
+Magely_HandleEnteringWorld(true, false)
+H.check(said(before):find("tested on", 1, true), "an unpackaged checkout warns too")
+
+-- A release keeps quiet on any build. What flags an addon out of date is the
+-- TOC's Interface number; this notice is for whoever re-measures.
+C_AddOns.GetAddOnMetadata = releaseMetadata
+H.check(Magely.API.AddonVersion("Magely") ~= "dev", "the stub reports a release version")
+freshSession(FIXED)
+before = #WoW.messages
+Magely_HandleEnteringWorld(true, false)
+H.check(not said(before):find("tested on", 1, true),
+    "a release never shows the build notice: " .. said(before))
 
 H.done("test_config_seam")
