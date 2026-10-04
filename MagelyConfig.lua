@@ -62,7 +62,8 @@ local DEFAULTS = {
 -- Which build the notes Magely relies on were measured on. In the SOURCE,
 -- because through 69977 it was the one thing that survived a restart, and it
 -- is still the one thing no client bug can lose. Bump MEASURED_ON_BUILD after
--- re-measuring (AGENTS.md); the library warns at every real login until then.
+-- re-measuring (AGENTS.md); until then a development copy says so once per new
+-- client build, and a release keeps quiet (see the report callback).
 --
 -- MEASURED_ON_BUILD is 70009: Priestly re-measured it (Spotnick2/priestly#60)
 -- - a new API dump, which is NOT the same set as 69977's but removes nothing
@@ -98,6 +99,18 @@ local function AccountCheckStore()
     if not MagelySVCheck then MagelySVCheck = {} end
     return MagelySVCheck
 end
+-- The client build a development copy last announced, account-wide, so the
+-- notice speaks once per new build rather than at every login on every
+-- character. See the report callback below.
+local function AnnouncedBuild()
+    return MagelySVCheck and MagelySVCheck.seenBuild
+end
+
+local function RememberAnnouncedBuild(build)
+    AccountCheckStore()
+    MagelySVCheck.seenBuild = build
+end
+
 -- config-owner: end
 
 -- Empty on purpose: the one place the SavedVariables fix, or a migration, will
@@ -125,7 +138,16 @@ local settings = Magely.Settings.New({
     measuredOnBuild = MEASURED_ON_BUILD,
     report = function(text, kind)
         if not DEFAULT_CHAT_FRAME then return end
-        if kind == "newBuild" and not IsDevelopmentCopy() then return end
+        if kind == "newBuild" then
+            -- Once per new client build, in a development copy only: time to
+            -- re-measure, then bump MEASURED_ON_BUILD (which silences it for good).
+            if not IsDevelopmentCopy() then return end
+            local build = API.ClientBuild()
+            if build == AnnouncedBuild() then return end
+            RememberAnnouncedBuild(build)
+            text = "new client build " .. tostring(build) .. " (measured on "
+                .. MEASURED_ON_BUILD .. "): re-measure, then bump MEASURED_ON_BUILD."
+        end
         if kind == "settingsLoaded" then text = "|cff55ff55" .. text .. "|r" end
         DEFAULT_CHAT_FRAME:AddMessage("|cff3fc7eb[Magely]|r " .. text)
     end,
@@ -500,8 +522,8 @@ end
 -- `svLoadCheck` marker in each scope - written every session, never in
 -- DEFAULTS - and says so once when one comes back carrying a build OTHER than
 -- the one running, which only a patched client can produce. The build check
--- warns at every real login on a build other than MEASURED_ON_BUILD,
--- deliberately unlatched.
+-- speaks at a real login on a build other than MEASURED_ON_BUILD,
+-- in a development copy only, once per new build (the report callback).
 
 function Magely_CheckClientBuild()
     settings:CheckBuild()
