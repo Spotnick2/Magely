@@ -5,8 +5,8 @@ Priestly on the same library, by the probe, or on a Mage - and what is **Mage-sp
 so a tester knows what to look at and nobody mistakes an assumption for a measurement. v1.0.0
 shipped before anyone on the port had a Mage; the first pass on one is recorded below.
 
-Client: WoW: Forever 1.60.1, builds 69913, 69977 and - from 2026-09-25 - **70009**, built Sep 23
-(`MEASURED_ON_BUILD` is 70009; see "Build 70009" below).
+Client: WoW: Forever 1.60.1, builds 69913, 69977, 70009 (from 2026-09-25) and **70205**, built
+Oct 2 (`MEASURED_ON_BUILD` is 70205; see "Build 70205" below).
 
 ## Shared with Priestly — taken as measured
 
@@ -78,6 +78,18 @@ Not answered yet, and why:
 - **Raid members' casts**: not tried.
 - **Whisper to a surname** and **inspection**: answered on the second run, above.
 - **Talents**: `GetTalentInfo` answers nothing; whether the traits system does is the next run.
+
+## Build 70205
+
+`MEASURED_ON_BUILD` moved to **70205** on 2026-10-04 (#35). What that rests on:
+
+- **API dump**: 70205's declarations against 70009's (Spotnick2/priestly#78). Nothing Magely,
+  the library or the probe calls was removed or changed signature; `C_PlayerInfo.GetName` lost
+  `optional` on its return, and only the probe calls it, inside `try`.
+- **In game**: v1.0.4 (LibGroupBuffs r27, LibGlass r1) on 70205 - works, no errors (owner,
+  2026-10-04).
+- **Not re-run on 70205**, still as measured on 70009: aura secrecy in a fight (`/pprobe`), and
+  SavedVariables loading back after a **full exit**. Run them and record the result here.
 
 ## Build 70009
 
