@@ -425,7 +425,8 @@ end
 
 before = #WoW.messages
 H.check(pcall(slash, "report"), "the report runs")
-H.check(said(before):find("build 70009", 1, true), "names the build: " .. said(before))
+-- Whatever build the stub models: the probe reports the client it runs on.
+H.check(said(before):find("build " .. WoW.build, 1, true), "names the build: " .. said(before))
 H.check(pcall(slash, "reset"), "reset runs")
 H.eq(next(MagelyProbeDB.results), nil, "and forgets")
 before = #WoW.messages

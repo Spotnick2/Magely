@@ -1,5 +1,16 @@
 # Magely Changelog
 
+## Unreleased
+
+### Changed
+- **The buff window's glass now comes from LibGlass**, a small library shared by the Glass addons
+  and included in the download - nothing extra to install. The window's rim is a little softer;
+  nothing else changes on screen.
+- **The window explains itself when it can't close yet.** If it has nothing left to show during
+  a fight (your group emptied, or you untick "show when solo"), it now says it will close once
+  combat ends, instead of staying up without a word.
+- Needs LibGroupBuffs r27 and LibGlass r1, both included in the download.
+
 ## v1.0.3 - 2026-10-04
 
 ### Fixed
