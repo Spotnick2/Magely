@@ -103,60 +103,98 @@ What `Tools/MagelyProbe` has measured so far (build 70009; `docs/FOREVER-NOTES.m
 ## Repository Layout
 
 - `Magely.toc` — addon manifest: interface version, saved variables, load order.
-- `MagelyCompat.lua` — the bridge to the shared library. It asks the library whether the active
-  copy is usable, **`lib.Status(NEEDS_MINOR)`**, rather than checking the library's completion
-  markers itself: Magely is the first host that does, and Priestly and Wildly still carry the
-  hand-written check. It exposes `Magely.API`, `Magely.Settings`, `Magely.Engine`, `Magely.UI`,
-  and `Magely.RegisterEvents`, which reports rejected events in chat. No API code lives here.
+- `MagelyCompat.lua` — the bridge to the shared library: asks it for Magely's instance
+  (`lib:New`, exposed as `Magely.GB`) and its compat layer as `Magely.API`, and holds Magely's one
+  reporter, which prints everything the library has to say — the settings checks and rejected
+  events. `Magely.RegisterEvents` is the one way to register an event. No API code lives here.
 - `MagelyConfig.lua` — options panel, defaults, the Forever instance list, the Amplify / Dampen
   modes, exported config helpers. See "Config" below.
 - `Magely.lua` — `DEFS`, the visibility rule, the Arcane Powder footer item, the spec look,
   event handling, slash commands and the test seam. See "The host" below. Everything else is
-  LibGroupBuffs:
-  - `Engine.lua` is the buff logic (aura cache, roster, stats, targeting, click mapping,
+  LibGroupBuffs (one file, `LibGroupBuffs.lua`, since r26; the names below are its sections, each
+  built through `Magely.GB`):
+  - `Engine` is the buff logic (aura cache, roster, stats, targeting, click mapping,
     `UNIT_AURA` filtering).
-  - `UI.lua` is the window (rows, popover, secure buttons, dragging, ticker, what combat defers).
+  - `UI` is the window (rows, popover, secure buttons, dragging, ticker, what combat defers),
+    drawn in LibGlass-1.0's material.
   A change to how buffs are read, targeted or drawn belongs in the library, not here.
 - `docs/FOREVER-NOTES.md` — what is measured and what is not, and the in-game checklist.
 - `tests/` — Lua 5.1 unit tests, no game client. See `tests/README.md`.
-- `Tools/deploy.ps1` — deploy to the local Forever AddOns folder, library included. `-Probe` /
+- `Tools/deploy.ps1` — deploy to the local Forever AddOns folder, both libraries included (it runs
+  LibGlass's own deploy first). `-Probe` /
   `-ProbeOnly` deploy `Tools/MagelyProbe` too / alone.
 - `Tools/MagelyProbe/` — the throwaway probe for the cooldown pane's questions (`/mprobe`); see
   `docs/FOREVER-NOTES.md`. Never shipped (`.pkgmeta` ignores `Tools`). It reads every client global
   with `rawget`, so a missing API is recorded rather than fatal, and `tests/test_probe.lua` holds it
   to that.
-- `.github/workflows/package-check.yml` — tests against the pinned library, a dry-run package, and
-  a check that the zip embeds the library. Publishes nothing.
+- `.github/workflows/package-check.yml` — tests against the pinned libraries, a dry-run package,
+  and a check that the zip is exactly the addon plus both libraries at their pins. Publishes
+  nothing.
 - `.pkgmeta`, `README.md`, `CHANGELOG.md`, `LICENSE` — packaging and user-facing material.
 
-**One dependency: LibGroupBuffs-1.0.** It is never committed here — `Libs/` is git-ignored:
+**Two dependencies, embedded side by side:**
 
-- **Release:** `.pkgmeta` `externals` embeds it at `Libs/LibGroupBuffs-1.0`, **pinned to a tag**
-  (`r<MINOR>`), so a release cannot change underneath its own source.
-- **Development:** check it out **next to this repository**, as `../LibGroupBuffs`. `tests/run.ps1`
-  and `Tools/deploy.ps1` read it from there (or from `-Library`), print the revision they used, and
-  fail loudly if it is missing. There is no vendored fallback.
-- **CI** checks out the pinned tag, not the library's `main`.
+- **[LibGroupBuffs-1.0](https://github.com/Spotnick2/LibGroupBuffs)**: compat layer, engine,
+  window, window policy, settings.
+- **[LibGlass-1.0](https://github.com/Spotnick2/LibGlass)**, the glass material LibGroupBuffs'
+  window draws with. LibGroupBuffs does not embed it itself (the packager does not fetch an
+  external's own externals), so Magely declares both. See "The glass material" below.
 
-`NEEDS_MINOR` in `MagelyCompat.lua` must equal the pinned tag; `tests/test_manifest.lua` checks the
-TOC path, the externals key, the tag, the floor and the ignore rule all agree.
+Neither is ever committed here — `Libs/` is git-ignored:
 
-### The bridge's answers
+- **Release:** `.pkgmeta` `externals` embeds them at `Libs/LibGroupBuffs-1.0` and
+  `Libs/LibGlass-1.0`, each **pinned** — to a tag (`r<MINOR>`), or to a full commit while piloting
+  a library release before it is tagged — so a release cannot change underneath its own source.
+  Never `tag: latest`, and **no comment on a value line**: the packager's YAML reader keeps it as
+  part of the ref.
+- **Development:** check both out **next to this repository**, as `../LibGroupBuffs` and
+  `../LibGlass`. `tests/run.ps1` and `Tools/deploy.ps1` read them from there (or from `-Library` /
+  `-LibGlass`, and `$env:LIBGLASS`), print the revision they used, warn when a checkout is not at
+  its pin (`tests/pins.ps1`), and fail loudly if one is missing. There is no vendored fallback.
+- **CI** fetches each pinned ref (`tests/fetch_external.sh`), not the libraries' `main`.
 
-| `lib.Status` | Means | Magely says |
-|---|---|---|
-| no library | `LibStub` has no copy | missing from Magely's Libs folder |
-| `"ok"` | every file finished, active MINOR ≥ `NEEDS_MINOR` | nothing; starts |
-| `"incomplete"` | a file threw partway, or an older copy's record under a newer MINOR | failed to load completely |
-| `"too-old"` | complete, just behind | the version in use and the one needed - **never that it crashed** |
-| `Status` absent, MINOR < floor, its four named markers all equal its MINOR (or it is r2–r5, which predate them) | another addon's complete copy from before `Status` existed | too old, as above |
-| `Status` absent, MINOR < floor, a marker missing or older | that older copy threw partway | failed to load completely |
-| `Status` absent otherwise | the library's last file, which installs `Status`, threw | failed to load completely |
+`.pkgmeta`'s externals are read **by path**, through `tests/pkgmeta.lua` — run.ps1, deploy.ps1, CI
+and the manifest test all use it. With two externals, "the first `tag:` in the file" is LibGlass's.
+`NEEDS_MINOR` in `MagelyCompat.lua` must equal the pinned LibGroupBuffs MINOR;
+`tests/test_manifest.lua` checks the TOC paths, the externals, the pins, the floor and the ignore
+rules all agree.
 
-Write the branches out: `a and f() or b` keeps only `f`'s first return, and would lose the MINOR
-the too-old message names. Reading the named markers is allowed **only** for copies older than
-`Status`: those tags are released and frozen, so that list cannot drift. `test_bridge` checks it
-against the library's real r11 fixtures, whole and without `UI.lua`.
+### The bridge
+
+`MagelyCompat.lua` calls `lib:New({ owner = "Magely", report = Report, needs = NEEDS_MINOR })`
+**under pcall**. `New` refuses a copy that did not finish loading, a missing or half-loaded
+LibGlass, and one older than the floor. On a refusal the bridge prints one line in chat and
+stops, and `MagelyConfig.lua` and `Magely.lua` stop when `Magely.API` is nil.
+
+**`New`'s error is never printed to players.** Its wording is for developers, it cannot tell
+whose copy failed, and a crash inside `New` has no position under pcall, so its text cannot tell
+a crash from a refusal. `WhyRefused` reads the same facts `New` checks, in `New`'s order, from the
+libraries' markers:
+
+| Fact | Magely says |
+|---|---|
+| no library at all | missing from Magely's Libs folder; reinstall |
+| a copy without `New`, below the floor | Magely's own copy did not load; reinstall |
+| a copy without `New`, at or above the floor | failed to load completely; reinstall |
+| `lib.ready ~= active` | that copy did not finish loading - **`/console scriptErrors 1` shows whose**, not "reinstall": LibStub runs the newest copy, which may not be Magely's |
+| LibGlass not registered | missing from Magely's Libs folder; reinstall |
+| LibGlass registered, `ready ~= minor` | another addon's copy failed; `scriptErrors`, as above |
+| below the floor | names both versions; reinstall - **never that it crashed** |
+| anything else | failed to load completely |
+
+`New`'s own text goes into the developers' `error()` as `lib:New said: …`. LibGroupBuffs#54 asks
+`New` to raise a structured reason; when it lands, switch on its `code` instead.
+
+Constructors are **dot calls on the instance**: `GB.Engine(host)`, `GB.UI(host)`,
+`GB.Settings(spec)`, `GB.Visibility(spec)` (each fills in `owner` and `report`); shared data is
+`GB.STATES`, `GB.PET_GROUP`, `GB.LOAD_CHECK_KEY`, `GB.MINOR`.
+
+**One reporter.** The library never prints; everything it says arrives at the bridge's
+`report(text, kind)`, which the settings object inherits. A kind's rewording lives with the file
+that owns it, in `Magely.reportFilters[kind]` (`MagelyConfig.lua`: `newBuild`, `settingsLoaded`);
+a filter returns the text to print, or nil to say nothing. Rejected events arrive as kind
+`"events"` and are recorded in `Magely.eventFailures` **before** the chat-frame check; the label is
+coloured by the line's shape (`^([^:]*:)(.*)$`), not the library's words.
 
 ### A gap in a library seam
 
@@ -165,10 +203,13 @@ cooldown pane is the known one). **Never fork or patch the library from here.** 
 `C:\Projects\LibGroupBuffs`, following that repository's `AGENTS.md`: issue, branch, PR, `MINOR`
 raised in every runtime file, the previous tag's files added as test fixtures, Priestly's and
 Wildly's suites run against the working copy, merge, tag `r<MINOR>`. Then bump the pin here:
-`tag:` in `.pkgmeta` and `NEEDS_MINOR` in `MagelyCompat.lua`, together, in a Magely PR.
+`tag:` in `.pkgmeta` and `NEEDS_MINOR` in `MagelyCompat.lua`, together, in a Magely PR - **in a
+release made anyway**: players get library fixes earlier through whichever addon ships the newest
+copy, since LibStub runs that one.
 
-Before calling something a gap, read `UI.lua`: `appearance()` already accepts a `title` (a spec
-coloured `|cffRRGGBBMagely|r`), though the library's `AGENTS.md` does not list it yet.
+Before calling something a gap, read the UI section of `LibGroupBuffs.lua`: `appearance()` already
+accepts a `title` (a spec coloured `|cffRRGGBBMagely|r`), though the library's `AGENTS.md` does not
+list it yet.
 
 ## The host
 
@@ -224,9 +265,9 @@ content, learned at 56, so there is one reagent.
 ### Appearance
 
 `appearance()` returns the spec's icon, a **spec-coloured title** (`|cffRRGGBBMagely|r` - the
-library applies `look.title` on every rebuild, `UI.lua` `ApplyAppearance`), the header strip
+library applies `look.title` on every rebuild, `ApplyAppearance` in `LibGroupBuffs.lua`), the header strip
 tinted towards the spec colour, and the header and footer lines; the border stays Magely's cyan
-`#3fc7eb`, and the popover keeps the library's colours, as the TBC build's did. Never fork `UI.lua`
+`#3fc7eb`, and the popover keeps the library's colours, as the TBC build's did. Never fork the library's UI
 for a colour: if a colour has no key, that is a library gap.
 
 The spec comes from known spells, by ID, cached when spells change (never per rebuild): Arcane
@@ -305,7 +346,7 @@ that is what announced a fix on every relog (LibGroupBuffs #27).
 - **Never with `/reload` alone.** `/reload` keeps the client process alive and can only prove
   something is broken. Confirm with a **full exit and relaunch**.
 - **Every write to `MagelyDB` or `MagelySVCheck` goes through the settings write path**
-  (`Magely_SetConfig` / `Magely_SetInstance`, built on the library's `Settings.New`), except
+  (`Magely_SetConfig` / `Magely_SetInstance`, built with `Magely.GB.Settings`), except
   inside `-- config-owner: begin/end` regions in `MagelyConfig.lua` (three: the saved-table
   accessors, `EnsureDefaults`, the learned-duration cache). `tests/test_config_seam.lua` scans
   every ported file with the library's `tests/config_scan.lua` and pins the region count. Owner
@@ -319,20 +360,39 @@ Current `MagelyDB` keys: `trackIntellect`, `trackAmplify`, `trackDampen`, `ampli
   must never be in `DEFAULTS`**: it detects Blizzard's fix by being written every session and never
   defaulted.
 
+## The glass material
+
+The window's look is **LibGlass-1.0** (`..\LibGlass`, github.com/Spotnick2/LibGlass, MIT), the
+material every glass addon embeds. LibGroupBuffs draws with it; Magely never calls LibGlass itself
+and has no `Glass.lua` or textures of its own.
+
+- **Material changes are LibGlass PRs**, never edits here; how the window uses it is a
+  LibGroupBuffs PR. Never edit either checkout from this repository's session: a need found here
+  goes on that library's issue tracker.
+- **How it's embedded:** `.pkgmeta` externals put it in `Libs\LibGlass-1.0\` — the only supported
+  path, since its `MEDIA` is derived from it; anywhere else draws blank textures with no error — and
+  the TOC loads its XML **before** LibGroupBuffs'. A dev copy comes from the LibGlass checkout's own
+  `Tools\deploy.ps1`, which `Tools\deploy.ps1` here calls first.
+- **The pin:** a tag, never `tag: latest`. Bump it only in a release made anyway.
+- `tests/libfiles.lua` checks every texture LibGroupBuffs names is in LibGlass's `Media/`.
+- **Colours passed to a glass bar's `SetStatusBarColor` must be plain** (the library's hook
+  compares them): never a secret value.
+
 ## WoW API And Lua Rules
 
 - Target the **Retail/Mainline** API. `WOW_PROJECT_ID == WOW_PROJECT_MAINLINE` here.
 - Keep `## Interface: 16001`. The format is `%d%02d%02d`, so 1.60.1 → 16001. `11601` is a
   transposed-digit bug you will see in the wild.
-- **Never call a moved API directly.** Add it to LibGroupBuffs' `Compat.lua` and reach it through
-  `Magely.API`.
+- **Never call a moved API directly.** Add it to LibGroupBuffs' compat section and reach it
+  through `Magely.API`.
 - **Never copy a library function into a local** (`local F = API.F`). `API` is shared with every
   addon that embeds the library and a newer copy upgrades it in place; a copy keeps the old
   version. Call through `API`, or wrap: `local function F(...) return API.F(...) end`. Call engine
   and ui methods (`engine:GroupStat(...)`), never a copy of them.
 - Register events only through **`Magely.RegisterEvents`**, never the library's
-  `API.RegisterEvents*` or a bare `frame:RegisterEvent`. `RegisterEvent` throws on an unknown
-  event name and may return `false`; the wrapper reports both in chat.
+  `API.RegisterEvents*`, `GB.RegisterEvents` or a bare `frame:RegisterEvent`. `RegisterEvent`
+  throws on an unknown event name and may return `false`; the wrapper calls `GB.RegisterEvents`,
+  whose rejections reach Magely's reporter as kind `"events"`, printed and recorded.
 - **`COMBAT_LOG_EVENT_UNFILTERED` cannot be registered** — it is a forbidden action here. Deaths
   are `UNIT_DIED`; other casts are unmeasured.
 - **`C_Spell.GetSpellInfo(name)` only resolves spells the player KNOWS.** By ID it always works.
@@ -368,7 +428,7 @@ Current `MagelyDB` keys: `trackIntellect`, `trackAmplify`, `trackDampen`, `ampli
 
 ## Secure UI Rules
 
-The window is LibGroupBuffs' `UI.lua`, which owns these rules; do not reimplement them here.
+The window is LibGroupBuffs' UI section, which owns these rules; do not reimplement them here.
 
 - **In combat the window touches nothing.** Both frames parent secure buttons, so the client
   silently refuses to hide, move, re-anchor or stop a drag on them. `ui:Close()` returns false and
@@ -386,11 +446,14 @@ The window is LibGroupBuffs' `UI.lua`, which owns these rules; do not reimplemen
 Offline, on every change:
 
 ```powershell
-pwsh tests\run.ps1        # luac -p + all unit tests; needs ../LibGroupBuffs and Lua 5.1's luac
+pwsh tests\run.ps1        # luac -p + all unit tests; needs ../LibGroupBuffs, ../LibGlass and Lua 5.1's luac
+bash tests/fetch_external.sh Libs/LibGlass-1.0 <dir>   # clone a library at its .pkgmeta pin (what CI does)
 ```
 
-The first line names the library checkout and revision the tests ran against, next to the tag a
-release would ship. They differ while working on both; they must match before a release.
+The first lines name each library checkout and revision the tests ran against, and warn when one
+is not at its `.pkgmeta` pin. They differ while working on a library; they must match before a
+release. **Test against clones of the pins**, not `../LibGroupBuffs` as another session left it:
+a branch there can carry a shared stub for a different client build.
 
 **The stub is shared.** The client surface lives in `../LibGroupBuffs/tests/wow_stubs.lua`, one
 copy for Priestly, Wildly and Magely (LibGroupBuffs#21) — it was a copy here until the glass
@@ -447,15 +510,21 @@ a second time (see Priestly's `AGENTS.md`, Packaging, for the history).
 1. **Every tag needs a `CHANGELOG.md` entry, committed before the tag is pushed**, written for
    players.
 2. The release type comes from the **tag name**: `alpha` → Alpha, `beta` → Beta, else Release.
-3. **Check the published zip carries LibGroupBuffs, and nothing else.** CI proves the BigWigs
-   packager embeds it, but releases are built by CurseForge's own packager from the tag webhook,
-   which CI cannot run, and **the two do not behave the same**. Download the published file, run
-   `lua tests/libfiles.lua <unzipped>/Magely/Libs/LibGroupBuffs-1.0 ship`, then count the files in
-   that folder: the ones that command lists plus `LICENSE`, and nothing else.
+3. **Check the published zip carries both libraries, and nothing else.** CI proves the BigWigs
+   packager embeds them, but releases are built by CurseForge's own packager from the tag webhook,
+   which CI cannot run, and **the two do not behave the same**. Download the published file and,
+   with `<p>` = `<unzipped>/Magely/Libs`, check each folder:
+   - `lua tests/libfiles.lua <p>/LibGroupBuffs-1.0 ship <p>/LibGlass-1.0`, then count the files in
+     `LibGroupBuffs-1.0/`: **four** (the XML, `LibStub/LibStub.lua`, `LibGroupBuffs.lua`,
+     `LICENSE`). There is no `Media/` any more.
+   - `lua tests/libfiles.lua --glass <p>/LibGlass-1.0 ship`, then count the files in
+     `LibGlass-1.0/`: **nineteen** (the XML, the two files it loads, `LICENSE`, 15 textures).
+   - Both libraries equal to their pins, and the released `MagelyConfig.lua` must still say
+     `"@" .. "project-version@"` (#32).
 
    **CurseForge does not apply an external's own `.pkgmeta`.** Measured on Priestly's v2.0.6
    download: the library's `tests/`, `AGENTS.md`, `CLAUDE.md` and `README.md` all shipped. The
-   entries under `Libs/LibGroupBuffs-1.0/` in *this* `.pkgmeta` are the guarantee, and
-   `tests/test_manifest.lua` mirrors them from the library's own list.
+   entries under `Libs/LibGroupBuffs-1.0/` and `Libs/LibGlass-1.0/` in *this* `.pkgmeta` are the
+   guarantee, and `tests/test_manifest.lua` mirrors them from each library's own list.
 4. Keep `@project-version@` in the TOC; `Tools/deploy.ps1` rewrites it to `dev` in the deployed
    copy only.

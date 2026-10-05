@@ -112,7 +112,7 @@ end
 -- target picking, click mapping and UNIT_AURA filtering are shared with
 -- Priestly and Wildly. The config accessors are looked up when called, so
 -- MagelyConfig.lua can replace them and tests can install their own.
-local engine = Magely.Engine.New({
+local engine = Magely.GB.Engine({
     defs       = DEFS,
     bucketSize = MAX_MEMBERS,           -- pets are split into popover-sized buckets
     showSolo      = function() return Magely_ShowSolo() end,
@@ -123,9 +123,9 @@ local engine = Magely.Engine.New({
     learnedDuration = function(spell) return Magely_GetLearnedDuration(spell) end,
 })
 
-local ST_HAS     = Magely.Engine.STATES.HAS
-local ST_MISSING = Magely.Engine.STATES.MISSING
-local ST_UNKNOWN = Magely.Engine.STATES.UNKNOWN
+local ST_HAS     = Magely.GB.STATES.HAS
+local ST_MISSING = Magely.GB.STATES.MISSING
+local ST_UNKNOWN = Magely.GB.STATES.UNKNOWN
 
 -- What RefreshSpellData derives from the spellbook, kept until it next runs:
 -- the window asks for the look on every rebuild, and in a raid that is every
@@ -258,9 +258,8 @@ end
 -- reagent and config. WHEN the window opens is the library's too, through
 -- the policy object built below; the events and slash
 -- commands below call the ui's methods.
-local ui = Magely.UI.New({
-    engine  = engine,
-    owner   = addonName,
+local ui = Magely.GB.UI({
+    engine  = engine,                   -- owner is the instance's: GB.UI fills it in
     title   = "|cff3fc7ebMagely|r",
     version = VERSION,
     appearance = Appearance,
@@ -295,7 +294,7 @@ local ui = Magely.UI.New({
 -- three near-identical copies, and the copies produced six defects - each
 -- found in one, fixed there, and left standing in the others
 -- (LibGroupBuffs#22).
-local vis = Magely.Visibility.New({
+local vis = Magely.GB.Visibility({
     ui            = ui,
     isMyClass     = function() return g_IsMage end,
     showSolo      = function() return Magely_ShowSolo() end,
