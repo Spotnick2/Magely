@@ -27,8 +27,8 @@ H.eq(x .. y .. z, "123", "every character of the separator splits")
 
 ------------------------------------------------------------
 -- The client the stub models: 70205 (LibGroupBuffs#50, from r27). Magely's
--- MEASURED_ON_BUILD stays 70009 until someone re-measures; that is a
--- separate decision, made in game, not by the stub.
+-- MEASURED_ON_BUILD is 70205 too, but by its own decision, made in game
+-- (#35), not by the stub.
 ------------------------------------------------------------
 
 WoW.reset()

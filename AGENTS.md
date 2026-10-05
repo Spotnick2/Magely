@@ -331,8 +331,12 @@ separate install.
 still written so losing every setting at login is survivable - the beta has broken this once, and
 Magely v1.0.0 shipped before the fix.
 
-`MEASURED_ON_BUILD` in `MagelyConfig.lua` is **70009**, the build Priestly last re-measured
-(Spotnick2/priestly#60: API dump, `/pprobe` in and out of combat, the click bench).
+`MEASURED_ON_BUILD` in `MagelyConfig.lua` is **70205** (#35): the 70205 API dump compared with
+70009's (Spotnick2/priestly#78, nothing Magely or the library calls removed or changed), and
+v1.0.4 run in game on 70205 with no errors. **Not yet re-run on 70205:** `/pprobe` in a fight
+(aura secrecy) and the full-exit SavedVariables check; both were last measured on 70009
+(Spotnick2/priestly#60). Priestly still pins 70009 until they run. Record them in
+`docs/FOREVER-NOTES.md` when they do.
 `test_config_seam` pins it independently of the source, so bump the test with the constant after
 re-measuring - never to make it pass.
 
