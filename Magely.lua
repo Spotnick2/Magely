@@ -282,9 +282,18 @@ local ui = Magely.GB.UI({
     setVisible = function(visible) SetConfig("visible", visible) end,
     -- The window parents secure buttons, so in combat the client refuses to
     -- hide it. Every way of closing - the X button, /magely hide, the toggle -
-    -- lands here, so none of them looks ignored.
-    onCloseDeferred = function()
-        DEFAULT_CHAT_FRAME:AddMessage("|cff3fc7eb[Magely]|r The window closes when you leave combat.")
+    -- lands here, so none of them looks ignored. Since r27 the window's own
+    -- closes do too (the group emptied, "show when solo" unticked), with
+    -- `manual` false. The two are worded apart on purpose: after an automatic
+    -- close the player's X is answered again in the same fight, and the same
+    -- line twice would read as a glitch (LibGroupBuffs#45).
+    onCloseDeferred = function(_, manual)
+        if manual then
+            DEFAULT_CHAT_FRAME:AddMessage("|cff3fc7eb[Magely]|r The window closes when you leave combat.")
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cff3fc7eb[Magely]|r Nothing to show here now:"
+                .. " the window closes itself when you leave combat.")
+        end
     end,
 })
 

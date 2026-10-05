@@ -23,10 +23,11 @@ Magely = Magely or {}
 
 -- The oldest library this build of Magely works against. A floor, not a
 -- feature check: behaviour changes cannot be feature-detected. r26 is where
--- lib:New arrived, so it is also the floor this file can be written against.
--- Keep this equal to the MINOR .pkgmeta pins; tests/test_manifest.lua checks
--- that.
-local NEEDS_MINOR = 26
+-- lib:New arrived, so nothing older can serve this file; r27 is where a
+-- deferred close says whether the player asked for it (Magely.lua words the
+-- two apart). Keep this equal to the MINOR .pkgmeta pins;
+-- tests/test_manifest.lua checks that.
+local NEEDS_MINOR = 27
 
 -- Magely's own record of the events this client rejected, for
 -- `/dump Magely.eventFailures`. The library also keeps it, as

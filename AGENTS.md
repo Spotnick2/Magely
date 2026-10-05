@@ -83,10 +83,14 @@ click to whisper a request. None of its data sources work as written on this cli
   worked on TBC either - that is what the old `innervateDebug` option papered over. Power Infusion
   is a talent. Neither exists at the current level cap of 20, so nothing can be tested in game.
 
-It comes back as its own slice, on the library rather than beside it: LibGroupBuffs #24 (a
-companion pane needs more than `onLayout` / `onVisibility` - there is no tick hook, `onLayout`
-never fires in combat), then `MagelyCooldowns.lua`, keyed by GUID and anchored to
-`ui:MainFrame()`. **Never fork the window for it.**
+It comes back as its own slice, on the library rather than beside it. The seam it needed is
+there: **r27** (LibGroupBuffs #24, now pinned) adds `onTick(ui, elapsed)` on the window's
+half-second tick, in and out of combat, and `onAppearance(ui)`, beside `onLayout` /
+`onVisibility`. The pane's rules are in the library's `AGENTS.md` (companion panes) and its
+`tests/test_companion.lua` builds a Magely-shaped one: non-secure, parented to UIParent and
+anchored to `ui:MainFrame()`, laid out in `onLayout`, shown by `ui:IsVisible()`, counting from
+`GetTime()`. What is left is the data (below) and `MagelyCooldowns.lua`, keyed by GUID. **Never
+fork the window for it.**
 
 What `Tools/MagelyProbe` has measured so far (build 70009; `docs/FOREVER-NOTES.md`):
 

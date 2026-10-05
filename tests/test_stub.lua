@@ -26,14 +26,17 @@ local x, y, z = strsplit(",;", "1;2,3")
 H.eq(x .. y .. z, "123", "every character of the separator splits")
 
 ------------------------------------------------------------
--- The client the stub models: 70009
+-- The client the stub models: 70205 (LibGroupBuffs#50, from r27). Magely's
+-- MEASURED_ON_BUILD stays 70009 until someone re-measures; that is a
+-- separate decision, made in game, not by the stub.
 ------------------------------------------------------------
 
 WoW.reset()
-H.eq(WoW.build, "70009", "the stub is the installed client's build")
+H.eq(WoW.build, "70205", "the stub is the installed client's build")
 local _, build, date = GetBuildInfo()
-H.eq(build, "70009", "GetBuildInfo's second return is that build")
-H.eq(date, "Sep 23 2026", "and its third the date 70009 was built")
+H.eq(build, "70205", "GetBuildInfo's second return is that build")
+-- Two spaces: C's __DATE__ pads a single-digit day, and the client repeats it.
+H.eq(date, "Oct  2 2026", "and its third the date 70205 was built")
 WoW.build = "70123"
 H.eq(select(2, GetBuildInfo()), "70123", "a test can still move it")
 WoW.reset()
