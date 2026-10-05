@@ -1,6 +1,11 @@
 # Magely Changelog
 
-## Unreleased
+## v1.0.4 - 2026-10-04
+
+### Fixed
+- **The "new client build" message really is gone for players now.** v1.0.3 meant to show it in
+  development copies only, but the release itself still counted as one, so it appeared anyway
+  after a game update.
 
 ### Changed
 - **The buff window's glass now comes from LibGlass**, a small library shared by the Glass addons
