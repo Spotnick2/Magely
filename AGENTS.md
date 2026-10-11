@@ -528,7 +528,8 @@ a second time (see Priestly's `AGENTS.md`, Packaging, for the history).
      `LibGroupBuffs-1.0/`: **four** (the XML, `LibStub/LibStub.lua`, `LibGroupBuffs.lua`,
      `LICENSE`). There is no `Media/` any more.
    - `lua tests/libfiles.lua --glass <p>/LibGlass-1.0 ship`, then count the files in
-     `LibGlass-1.0/`: **nineteen** (the XML, the two files it loads, `LICENSE`, 15 textures).
+     `LibGlass-1.0/`: **thirty-one** at r5 (the XML, the two files it loads, `LICENSE`, 27 textures;
+     r1 had 15, so 19 files). The count moves with the pin.
    - Both libraries equal to their pins, and the released `MagelyConfig.lua` must still say
      `"@" .. "project-version@"` (#32).
 
