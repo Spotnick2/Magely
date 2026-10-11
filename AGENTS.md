@@ -12,14 +12,14 @@ Repository-specific additions:
 
 - Post every pull-request review and follow-up review on the PR, then link the posted review in the
   final response.
-- Reviews run from `C:\Projects\Magely`. PR numbers overlap with Priestly, Wildly and
+- Reviews run from `C:\Projects\WoW\Magely`. PR numbers overlap with Priestly, Wildly and
   LibGroupBuffs, so name the repository explicitly when reviewing from elsewhere
   (`gh pr diff 2 -R Spotnick2/Magely`).
 - Match `MEASURED_ON_BUILD` in `MagelyConfig.lua` (once ported) to
-  `C:/Projects/References/forever-api-<version>.<build>.md`. Runtime measurements for this client
-  live in `C:\Projects\Priestly\docs\FOREVER-PROBE.md` (and Magely's own `docs/` once it has
+  `C:/Projects/WoW/References/forever-api-<version>.<build>.md`. Runtime measurements for this client
+  live in `C:\Projects\WoW\Priestly\docs\FOREVER-PROBE.md` (and Magely's own `docs/` once it has
   measured something Mage-specific); addon-agnostic Forever findings live in
-  `C:/Projects/References/PORTING-TBC-TO-FOREVER.md`.
+  `C:/Projects/WoW/References/PORTING-TBC-TO-FOREVER.md`.
 
 ## What This Repository Is
 
@@ -31,11 +31,11 @@ Magic** and **Dampen Magic** across party and raid members.
 Forever port (Interface 20505). Do not add flavor branching for it.
 
 Forever is *Vanilla content running on Blizzard's Retail (Mainline) codebase*: content assumptions
-are Vanilla, API assumptions are Retail. Read `C:\Projects\References\PORTING-TBC-TO-FOREVER.md`
+are Vanilla, API assumptions are Retail. Read `C:\Projects\WoW\References\PORTING-TBC-TO-FOREVER.md`
 before touching an unfamiliar API.
 
 Magely is one of three thin hosts on **[LibGroupBuffs-1.0](https://github.com/Spotnick2/LibGroupBuffs)**
-(with Priestly and Wildly). **Wildly is the closest model** (`C:\Projects\Wildly`: `Wildly.lua`,
+(with Priestly and Wildly). **Wildly is the closest model** (`C:\Projects\WoW\Wildly`: `Wildly.lua`,
 `WildlyConfig.lua`, `tests/`), and **Priestly the first**: its instance list and its
 detect / instance visibility modes are what Amplify and Dampen follow. When in doubt about how a
 host should do something, do what they do, and copy their instructions rather than reinventing them.
@@ -84,7 +84,7 @@ click to whisper a request. None of its data sources work as written on this cli
   is a talent. Neither exists at the current level cap of 20, so nothing can be tested in game.
 
 It comes back as its own slice, on the library rather than beside it. The seam it needed is
-there: **r27** (LibGroupBuffs #24, now pinned) adds `onTick(ui, elapsed)` on the window's
+there: **r27** (LibGroupBuffs #24; r28 is pinned) adds `onTick(ui, elapsed)` on the window's
 half-second tick, in and out of combat, and `onAppearance(ui)`, beside `onLayout` /
 `onVisibility`. The pane's rules are in the library's `AGENTS.md` (companion panes) and its
 `tests/test_companion.lua` builds a Magely-shaped one: non-secure, parented to UIParent and
@@ -172,8 +172,11 @@ stops, and `MagelyConfig.lua` and `Magely.lua` stop when `Magely.API` is nil.
 
 **`New`'s error is never printed to players.** Its wording is for developers, it cannot tell
 whose copy failed, and a crash inside `New` has no position under pcall, so its text cannot tell
-a crash from a refusal. `WhyRefused` reads the same facts `New` checks, in `New`'s order, from the
-libraries' markers:
+a crash from a refusal. `WhyRefused` words it by **`lib:Refusal(NEEDS_MINOR)`'s code** (r28):
+`incomplete`, `glass-missing`, `glass-incomplete`, `too-old`. A `nil` reason (a crash or host
+mistake), a code this build does not know, and a `Refusal` that throws all read as "failed to load
+completely". An active copy with no `Refusal` (another addon's r26/r27) is read from the libraries'
+markers instead, the same facts in `New`'s order:
 
 | Fact | Magely says |
 |---|---|
@@ -186,8 +189,7 @@ libraries' markers:
 | below the floor | names both versions; reinstall - **never that it crashed** |
 | anything else | failed to load completely |
 
-`New`'s own text goes into the developers' `error()` as `lib:New said: …`. LibGroupBuffs#54 asks
-`New` to raise a structured reason; when it lands, switch on its `code` instead.
+`New`'s own text goes into the developers' `error()` as `lib:New said: …`.
 
 Constructors are **dot calls on the instance**: `GB.Engine(host)`, `GB.UI(host)`,
 `GB.Settings(spec)`, `GB.Visibility(spec)` (each fills in `owner` and `report`); shared data is
@@ -204,7 +206,7 @@ coloured by the line's shape (`^([^:]*:)(.*)$`), not the library's words.
 
 The seams were designed from Priestly alone and widened for Wildly; Magely will find more (the
 cooldown pane is the known one). **Never fork or patch the library from here.** Fix it in
-`C:\Projects\LibGroupBuffs`, following that repository's `AGENTS.md`: issue, branch, PR, `MINOR`
+`C:\Projects\WoW\LibGroupBuffs`, following that repository's `AGENTS.md`: issue, branch, PR, `MINOR`
 raised in every runtime file, the previous tag's files added as test fixtures, Priestly's and
 Wildly's suites run against the working copy, merge, tag `r<MINOR>`. Then bump the pin here:
 `tag:` in `.pkgmeta` and `NEEDS_MINOR` in `MagelyCompat.lua`, together, in a Magely PR - **in a
@@ -331,12 +333,12 @@ separate install.
 still written so losing every setting at login is survivable - the beta has broken this once, and
 Magely v1.0.0 shipped before the fix.
 
-`MEASURED_ON_BUILD` in `MagelyConfig.lua` is **70205** (#35): the 70205 API dump compared with
-70009's (Spotnick2/priestly#78, nothing Magely or the library calls removed or changed), and
-v1.0.4 run in game on 70205 with no errors. **Not yet re-run on 70205:** `/pprobe` in a fight
-(aura secrecy) and the full-exit SavedVariables check; both were last measured on 70009
-(Spotnick2/priestly#60). Priestly still pins 70009 until they run. Record them in
-`docs/FOREVER-NOTES.md` when they do.
+`MEASURED_ON_BUILD` in `MagelyConfig.lua` is **70338** (2026-10-11): the 70338 API dump compared
+with 70205's (nothing Magely, the library or LibGlass calls removed or changed; Priestly's
+`docs/FOREVER-PROBE.md`, "70338 against 70205") and the owner's test in game on 70338. 70205
+(#35) rested on the dump diff and v1.0.4 in game. `/pprobe` in a fight (aura secrecy) and the
+full-exit SavedVariables check were last run in full on 70009 (Spotnick2/priestly#60). Record
+re-runs in `docs/FOREVER-NOTES.md`.
 `test_config_seam` pins it independently of the source, so bump the test with the constant after
 re-measuring - never to make it pass.
 
@@ -473,7 +475,7 @@ then`) must be allowed as nil, or the guard throws inside the stub instead of ex
 branch it protects — `tests/test_bridge.lua` checks the guards against the list.
 
 The stub is an **allowlist**: reading any global it does not define fails the run. Before stubbing a new global, confirm it exists in the newest
-`C:/Projects/References/forever-api-<build>.md` and stub it with the client's exact signature;
+`C:/Projects/WoW/References/forever-api-<build>.md` and stub it with the client's exact signature;
 never add one because a test failed. Strict globals do not cover **methods** — for anything built
 on a widget method, execute it and assert what it produced.
 
