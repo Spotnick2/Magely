@@ -1,5 +1,13 @@
 # Magely Changelog
 
+## v1.0.5 - 2026-10-11
+
+### Changed
+- **Checked on game build 1.60.1.70338**, the current WoW: Forever client. Nothing Magely relies on
+  changed in this build, so there is nothing to do after updating.
+- Updated the shared libraries it ships with: needs LibGroupBuffs r28 and LibGlass r5 (was
+  LibGroupBuffs r27 and LibGlass r1), both included in the download. Nothing changes on screen.
+
 ## v1.0.4 - 2026-10-04
 
 ### Fixed
