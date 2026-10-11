@@ -5,14 +5,14 @@ Priestly on the same library, by the probe, or on a Mage - and what is **Mage-sp
 so a tester knows what to look at and nobody mistakes an assumption for a measurement. v1.0.0
 shipped before anyone on the port had a Mage; the first pass on one is recorded below.
 
-Client: WoW: Forever 1.60.1, builds 69913, 69977, 70009 (from 2026-09-25) and **70205**, built
-Oct 2 (`MEASURED_ON_BUILD` is 70205; see "Build 70205" below).
+Client: WoW: Forever 1.60.1, builds 69913, 69977, 70009 (from 2026-09-25), 70205 and **70338**,
+built Oct 9 (`MEASURED_ON_BUILD` is 70338; see "Build 70338" below).
 
 ## Shared with Priestly — taken as measured
 
 Magely is a thin host on LibGroupBuffs-1.0, and everything below runs the same code Priestly runs
-in game. The measurements are in `C:\Projects\Priestly\docs\FOREVER-PROBE.md` and
-`C:\Projects\References\PORTING-TBC-TO-FOREVER.md`; do not re-derive them here.
+in game. The measurements are in `C:\Projects\WoW\Priestly\docs\FOREVER-PROBE.md` and
+`C:\Projects\WoW\References\PORTING-TBC-TO-FOREVER.md`; do not re-derive them here.
 
 | Behaviour | Where it was measured |
 |---|---|
@@ -78,6 +78,16 @@ Not answered yet, and why:
 - **Raid members' casts**: not tried.
 - **Whisper to a surname** and **inspection**: answered on the second run, above.
 - **Talents**: `GetTalentInfo` answers nothing; whether the traits system does is the next run.
+
+## Build 70338
+
+`MEASURED_ON_BUILD` moved to **70338** on 2026-10-11. What that rests on:
+
+- **API dump**: 70338's declarations against 70205's (Priestly's `docs/FOREVER-PROBE.md`, "70338
+  against 70205"). Nothing Magely, LibGroupBuffs or LibGlass calls was removed or changed
+  signature; the changes are voice chat, Discord, LFG structures and the `ComboFrame_*` globals.
+- **In game**: tested by the owner on 70338 (2026-10-11).
+- `/pprobe` in a fight and the full-exit SavedVariables check were last run in full on 70009.
 
 ## Build 70205
 

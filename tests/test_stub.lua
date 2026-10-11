@@ -26,9 +26,10 @@ local x, y, z = strsplit(",;", "1;2,3")
 H.eq(x .. y .. z, "123", "every character of the separator splits")
 
 ------------------------------------------------------------
--- The client the stub models: 70205 (LibGroupBuffs#50, from r27). Magely's
--- MEASURED_ON_BUILD is 70205 too, but by its own decision, made in game
--- (#35), not by the stub.
+-- The client the stub models: 70205 (LibGroupBuffs#50, from r27; r28 is
+-- pinned and still models it). Magely's MEASURED_ON_BUILD is 70338, the real
+-- client, by its own decision made in game - not by the stub, which catches
+-- up when a library release models 70338.
 ------------------------------------------------------------
 
 WoW.reset()

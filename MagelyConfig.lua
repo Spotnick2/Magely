@@ -65,13 +65,13 @@ local DEFAULTS = {
 -- re-measuring (AGENTS.md); until then a development copy says so once per new
 -- client build, and a release keeps quiet (see Magely.reportFilters.newBuild).
 --
--- MEASURED_ON_BUILD is 70205 (2026-10-04, #35). What was checked: the 70205
--- API dump against 70009's (Spotnick2/priestly#78) - nothing Magely or the
--- library calls was removed or changed signature; and Magely v1.0.4 (r27) in
--- game on 70205, working with no errors. What was NOT re-run on 70205:
--- /pprobe in a fight (aura secrecy) and the full-exit SavedVariables check.
--- Those were last measured on 70009 (Spotnick2/priestly#60), and Priestly
--- still pins 70009 until they run.
+-- MEASURED_ON_BUILD is 70338 (2026-10-11). What was checked: the 70338 API
+-- dump against 70205's - nothing Magely, the library or LibGlass calls was
+-- removed or changed signature (Priestly's docs/FOREVER-PROBE.md, "70338
+-- against 70205") - and the owner's test in game on 70338. 70205 before it
+-- (#35) was the dump diff plus Magely v1.0.4 in game; /pprobe in a fight
+-- (aura secrecy) and the full-exit SavedVariables check were last run in full
+-- on 70009 (Spotnick2/priestly#60).
 --
 -- There is no companion constant for the settings check. Magely used to pass
 -- SV_BROKEN_ON_BUILD - 69977, the last build SavedVariables were measured
@@ -87,7 +87,7 @@ local DEFAULTS = {
 -- correctly with nothing here to keep current. r15 (pinned) also honours the
 -- "already told" latch r12 wrote, so a player r12 told is not told again at the
 -- next patch (LibGroupBuffs #31).
-local MEASURED_ON_BUILD = "70205"
+local MEASURED_ON_BUILD = "70338"
 
 -- config-owner: begin
 -- The two saved tables, created on first use. MagelyDB holds the settings
