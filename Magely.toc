@@ -7,6 +7,7 @@
 ## SavedVariablesPerCharacter: MagelyDB
 ## SavedVariables: MagelySVCheck
 ## X-Curse-Project-ID: 1545112
+## X-Wago-ID: XKqEwxKy
 
 Libs\LibGlass-1.0\LibGlass-1.0.xml
 Libs\LibGroupBuffs-1.0\LibGroupBuffs-1.0.xml
