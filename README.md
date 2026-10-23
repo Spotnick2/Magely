@@ -6,6 +6,11 @@ or raid and lets you rebuff with a single click.
 
 This is the **World of Warcraft: Forever** edition (client 1.60.1, Interface `16001`).
 
+![Magely buff window in a group](https://raw.githubusercontent.com/Spotnick2/Magely/main/docs/screenshots/magely-01.png)
+
+*Earlier-build screenshot. The cooldown-request pane shown here is not in the current Forever
+version; the buff window has since gained additional controls.*
+
 > **Playing TBC Classic Anniversary?** Install **v0.1**, the last release for that client. It stays
 > available on CurseForge for the Anniversary game version. The Anniversary line is no longer
 > being developed.
@@ -17,10 +22,6 @@ three.
 ---
 
 ## Features
-
-**New in v1.0.6:** minimize/restore controls, a window that stays below bags,
-clearer unknown-state indicators, and corrected pet buff tracking.
-See the [release notes](https://github.com/Spotnick2/Magely/blob/main/CHANGELOG.md).
 
 * **One row per group, per buff**, colour-coded by how many people are missing it, with the lowest
   remaining timer on the bar.
@@ -36,6 +37,8 @@ See the [release notes](https://github.com/Spotnick2/Magely/blob/main/CHANGELOG.
 * **Group-aware.** It follows party and raid changes, subgroups, and pets.
 * **Reagent tracking.** The Arcane Powder count, once you know Arcane Brilliance.
 * **Your spec's look.** The header, title and icon follow Arcane, Fire or Frost.
+* **Window controls.** Minimize without closing, lock its position, adjust opacity and choose
+  which side the member popover opens on.
 
 ---
 
@@ -60,6 +63,7 @@ In the popover, **? beside the class icon** means spell range is unknown.
 
 The window opens on its own when you join a group. On other classes Magely shows nothing and
 says nothing, unless you type `/magely`, which answers with one line.
+Settings and window position persist between sessions.
 
 **Row colours:** green = everyone has it · yellow = some missing · red = nobody has it ·
 grey `?` = buff state cannot be read right now (the client hides aura data during combat, so
@@ -89,46 +93,28 @@ World of Warcraft/_classic_beta_/Interface/AddOns/Magely/
 
 ---
 
-## Beta notes
+## Good to know
 
 **Pet eligibility:** hunter and warlock pets are excluded from Arcane Intellect
 tracking and targeting. Amplify and Dampen keep their existing pet eligibility.
 
-Forever is in beta and the level cap is still low, so some of Magely is waiting for content to
-catch up:
+Magely uses single-target Arcane Intellect until you learn Arcane Brilliance. It learns buff
+durations from live auras and relearns them when the client build changes. The cooldown-request
+pane in the screenshot is from the older Anniversary edition and is not available in Forever.
+If a Forever instance is missing from the Amplify/Dampen list, please report its in-game name.
 
-* **Arcane Brilliance is not learnable yet** (it comes at level 56). The Intellect row works
-  single-target until it is, and switches over automatically once you learn it. Arcane Powder
-  appears in the footer at the same time.
-* **The spec look needs a 31-point talent**, which nobody can reach yet, so everyone gets the plain
-  Mage look for now.
-* **The cooldown request pane is not in this version.** Forever does not let addons read the
-  combat log, which it relied on, and Innervate and Power Infusion are above the level cap. It is
-  planned to return.
-* **Forever's own instances are not catalogued yet**, so they start unchecked in the instance
-  list. If you use "by instance" and enter one the list does not know at all, Magely says so -
-  please report the name.
-* **Mage buff durations have not been measured on Forever yet**, and Forever's durations have
-  already turned out to differ from both TBC and Vanilla for other classes. Magely learns the real
-  duration from live buffs rather than assuming one, and forgets what it learned whenever the
-  client build changes.
-* **Settings now stay between sessions.** Up to game build 69977 a client bug wiped every addon's
-  settings at each login: Forever wrote them to disk and never read them back. Build 70009 fixed
-  it. If you played through that patch, Magely says so in chat once it sees your settings survive
-  it — it can only tell by watching them come back across a game update, so a fresh install on an
-  already-fixed build simply works and says nothing.
+Forever can hide aura data during combat. Magely uses its last observation and shows `?` if no
+reliable reading is available. Window movement, closing and minimize/restore requests made during
+combat take effect after combat ends.
 
 ---
 
 ## Feedback
 
-Open an issue on GitHub or leave a comment on CurseForge. Include the addon version,
+Open an [issue on GitHub](https://github.com/Spotnick2/Magely/issues) or leave a comment on
+CurseForge. Include the addon version,
 client build, locale, and whether the problem happened in combat. Typing
 `/console scriptErrors 1` in game shows Lua errors that the client otherwise hides.
-
-The shared window changes were tested in Priestly. The Mage-specific pet eligibility
-changes in this release still need direct in-game cast confirmation; the automated
-locale and battleground cases do not establish behavior on every live client.
 
 ## Author
 
