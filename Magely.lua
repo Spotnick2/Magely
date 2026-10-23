@@ -93,6 +93,19 @@ local DEFS = {
 -- The Arcane Intellect def, which the reagent and the help text ask about.
 local INTELLECT = DEFS[1]
 
+-- Forever's stat-buff restriction covers hunter and warlock pets. This is
+-- specific to Intellect; Amplify/Dampen and other pet types remain unchanged.
+local function MembersFor(def, members)
+    if def.id ~= "intellect" then return members end
+    local out = {}
+    for _, m in ipairs(members) do
+        if m.class ~= "PET_HUNTER" and m.class ~= "PET_WARLOCK" then
+            out[#out + 1] = m
+        end
+    end
+    return out
+end
+
 -- ─── When a row appears ─────────────────────────────────────────────────────
 --
 -- Availability is the engine's: a row exists only for a spell the Mage knows,
@@ -119,6 +132,7 @@ local engine = Magely.GB.Engine({
     trackPets     = function() return Magely_TrackPets() end,
     isBuffEnabled = function(defId) return Magely_IsBuffEnabled(defId) end,
     isVisible       = IsVisible,
+    membersFor      = MembersFor,
     learnDuration   = function(spell, secs) Magely_LearnDuration(spell, secs) end,
     learnedDuration = function(spell) return Magely_GetLearnedDuration(spell) end,
 })
@@ -262,6 +276,7 @@ local ui = Magely.GB.UI({
     engine  = engine,                   -- owner is the instance's: GB.UI fills it in
     title   = "|cff3fc7ebMagely|r",
     version = VERSION,
+    minimizable = true,
     appearance = Appearance,
     unknownClassIcon = MAGE_ICON,
     footerItems = FooterItems,
@@ -280,6 +295,10 @@ local ui = Magely.GB.UI({
     end,
     setPos     = function(pos) SetConfig("pos", pos) end,
     setVisible = function(visible) SetConfig("visible", visible) end,
+    onMinimizeDeferred = function(_, minimized)
+        DEFAULT_CHAT_FRAME:AddMessage("|cff3fc7eb[Magely]|r The window "
+            .. (minimized and "minimizes" or "restores") .. " when you leave combat.")
+    end,
     -- The window parents secure buttons, so in combat the client refuses to
     -- hide it. Every way of closing - the X button, /magely hide, the toggle -
     -- lands here, so none of them looks ignored. Since r27 the window's own
@@ -536,11 +555,13 @@ SlashCmdList["MAGELY"] = function(msg)
             DEFAULT_CHAT_FRAME:AddMessage("  Right-click  same (no Arcane Brilliance known yet)")
         end
         DEFAULT_CHAT_FRAME:AddMessage("  Mouseover    open per-member popover")
+        DEFAULT_CHAT_FRAME:AddMessage("  Header -/+   minimize/restore (this session; waits for combat to end)")
         Say("Popover:")
         DEFAULT_CHAT_FRAME:AddMessage("  Left/Right   buff that person (left casts Brilliance when known)")
         DEFAULT_CHAT_FRAME:AddMessage("  R = green (in range) / yellow (out of range) / grey (offline)")
         DEFAULT_CHAT_FRAME:AddMessage("  Timer = green >50% / yellow 10-50% / red <10%")
-        DEFAULT_CHAT_FRAME:AddMessage("  ? = buff state unreadable right now (combat aura secrecy)")
+        DEFAULT_CHAT_FRAME:AddMessage("  ? beside the class icon = spell range unknown")
+        DEFAULT_CHAT_FRAME:AddMessage("  ? instead of a timer = buff state unreadable, with no cached reading")
 
     elseif cmd == "config" or cmd == "options" or cmd == "settings" or cmd == "opt" then
         if Magely_OpenConfig then Magely_OpenConfig() end

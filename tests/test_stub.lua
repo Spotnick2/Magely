@@ -26,18 +26,16 @@ local x, y, z = strsplit(",;", "1;2,3")
 H.eq(x .. y .. z, "123", "every character of the separator splits")
 
 ------------------------------------------------------------
--- The client the stub models: 70205 (LibGroupBuffs#50, from r27; r28 is
--- pinned and still models it). Magely's MEASURED_ON_BUILD is 70338, the real
--- client, by its own decision made in game - not by the stub, which catches
--- up when a library release models 70338.
+-- The r31 shared stub models build 70338, matching Magely's existing
+-- MEASURED_ON_BUILD. This pin update does not claim a new runtime measurement.
 ------------------------------------------------------------
 
 WoW.reset()
-H.eq(WoW.build, "70205", "the stub is the installed client's build")
+H.eq(WoW.build, "70338", "the stub is the installed client's build")
 local _, build, date = GetBuildInfo()
-H.eq(build, "70205", "GetBuildInfo's second return is that build")
+H.eq(build, "70338", "GetBuildInfo's second return is that build")
 -- Two spaces: C's __DATE__ pads a single-digit day, and the client repeats it.
-H.eq(date, "Oct  2 2026", "and its third the date 70205 was built")
+H.eq(date, "Oct  9 2026", "and its third the date 70338 was built")
 WoW.build = "70123"
 H.eq(select(2, GetBuildInfo()), "70123", "a test can still move it")
 WoW.reset()

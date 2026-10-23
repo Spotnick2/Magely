@@ -27,7 +27,7 @@ Magely = Magely or {}
 -- deferred close says whether the player asked for it (Magely.lua words the
 -- two apart), and r28 where lib:Refusal says why New refused. Keep this equal
 -- to the MINOR .pkgmeta pins; tests/test_manifest.lua checks that.
-local NEEDS_MINOR = 28
+local NEEDS_MINOR = 31
 
 -- Magely's own record of the events this client rejected, for
 -- `/dump Magely.eventFailures`. The library also keeps it, as
