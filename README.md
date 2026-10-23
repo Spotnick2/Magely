@@ -37,6 +37,13 @@ three.
 
 ## Usage
 
+Use the header **-** to minimize to the title bar and **+** to restore. Requests in
+combat wait until combat ends. Minimized state lasts for this session; `/reload`
+or logging in expands the window again. **X** closes the window.
+
+In the popover, **? beside the class icon** means spell range is unknown.
+**? instead of a timer** means the buff cannot be read and there is no cached reading.
+
 ```
 /magely          toggle the window
 /magely show     force open
@@ -73,6 +80,9 @@ World of Warcraft/_classic_beta_/Interface/AddOns/Magely/
 ---
 
 ## Beta notes
+
+**Pet eligibility:** hunter and warlock pets are excluded from Arcane Intellect
+tracking and targeting. Amplify and Dampen keep their existing pet eligibility.
 
 Forever is in beta and the level cap is still low, so some of Magely is waiting for content to
 catch up:
