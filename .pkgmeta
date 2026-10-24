@@ -12,8 +12,10 @@ enable-nolib-creation: no
 # packager's YAML reader keeps it as part of the ref.
 #
 # A pin may be `commit: <full sha>` while Magely pilots a library release
-# before it is tagged (Priestly piloted r26 that way); it goes back to a tag
-# before Magely releases.
+# before it is tagged (Priestly piloted r26 that way), but only on a branch:
+# never tag Magely, alphas included, with a commit pin. CurseForge's webhook
+# builds no file from one (Buffy v0.1.1-alpha1/-alpha2, 2026-10-24;
+# EMBEDDED-LIBRARIES.md section 3).
 externals:
   Libs/LibGlass-1.0:
     url: https://github.com/Spotnick2/LibGlass
