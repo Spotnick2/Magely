@@ -16,10 +16,10 @@ Repository-specific additions:
   LibGroupBuffs, so name the repository explicitly when reviewing from elsewhere
   (`gh pr diff 2 -R Spotnick2/Magely`).
 - Match `MEASURED_ON_BUILD` in `MagelyConfig.lua` (once ported) to
-  `C:/Projects/WoW/References/forever-api-<version>.<build>.md`. Runtime measurements for this client
+  `C:/Projects/WoW/References/Forever/api/forever-api-<version>.<build>.md`. Runtime measurements for this client
   live in `C:\Projects\WoW\Priestly\docs\FOREVER-PROBE.md` (and Magely's own `docs/` once it has
   measured something Mage-specific); addon-agnostic Forever findings live in
-  `C:/Projects/WoW/References/PORTING-TBC-TO-FOREVER.md`.
+  `C:/Projects/WoW/References/Docs/PORTING-TBC-TO-FOREVER.md`.
 
 ## What This Repository Is
 
@@ -31,7 +31,7 @@ Magic** and **Dampen Magic** across party and raid members.
 Forever port (Interface 20505). Do not add flavor branching for it.
 
 Forever is *Vanilla content running on Blizzard's Retail (Mainline) codebase*: content assumptions
-are Vanilla, API assumptions are Retail. Read `C:\Projects\WoW\References\PORTING-TBC-TO-FOREVER.md`
+are Vanilla, API assumptions are Retail. Read `C:\Projects\WoW\References\Docs\PORTING-TBC-TO-FOREVER.md`
 before touching an unfamiliar API.
 
 Magely is one of three thin hosts on **[LibGroupBuffs-1.0](https://github.com/Spotnick2/LibGroupBuffs)**
@@ -478,7 +478,7 @@ then`) must be allowed as nil, or the guard throws inside the stub instead of ex
 branch it protects — `tests/test_bridge.lua` checks the guards against the list.
 
 The stub is an **allowlist**: reading any global it does not define fails the run. Before stubbing a new global, confirm it exists in the newest
-`C:/Projects/WoW/References/forever-api-<build>.md` and stub it with the client's exact signature;
+`C:/Projects/WoW/References/Forever/api/forever-api-<version>.<build>.md` and stub it with the client's exact signature;
 never add one because a test failed. Strict globals do not cover **methods** — for anything built
 on a widget method, execute it and assert what it produced.
 
@@ -521,7 +521,7 @@ publishes `CHANGELOG.md` as the release notes. The same tag's `package-check` ru
 the zip it built and checked as a GitHub Release (with `release.json`) and on
 [Wago Addons](https://addons.wago.io/addons/magely) (project `XKqEwxKy`), with the tag's
 `CHANGELOG.md` section as the notes on both (#46). A tag therefore reaches three places: watch its
-run, not just CurseForge. The shared guide is `C:\Projects\WoW\References\RELEASING.md`.
+run, not just CurseForge. The shared guide is `C:\Projects\WoW\References\Docs\RELEASING.md`.
 
 **Never let the packager publish from CI.** It only ever runs with `-d`. On a tag without it, it
 would publish a second time alongside the webhook (see Priestly's `AGENTS.md`, Packaging, for the

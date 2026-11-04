@@ -89,5 +89,5 @@ Anything the addon reads **guarded** — `if Magely_OpenConfig then`, which exis
 or the guard throws inside the stub and the branch it protects can never be tested.
 `tests/test_bridge.lua` scans the source for those guards and checks them against the list, so the
 two cannot drift. Never add a global because a test failed: confirm it in the
-build-matched API dump (`C:/Projects/WoW/References/forever-api-<build>.md`) and stub it with the
+build-matched API dump (`C:/Projects/WoW/References/Forever/api/forever-api-<version>.<build>.md`) and stub it with the
 client's exact signature, or list it as known-absent and make the addon cope.
