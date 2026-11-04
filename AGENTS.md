@@ -478,7 +478,7 @@ then`) must be allowed as nil, or the guard throws inside the stub instead of ex
 branch it protects — `tests/test_bridge.lua` checks the guards against the list.
 
 The stub is an **allowlist**: reading any global it does not define fails the run. Before stubbing a new global, confirm it exists in the newest
-`C:/Projects/WoW/References/Forever/api/forever-api-<build>.md` and stub it with the client's exact signature;
+`C:/Projects/WoW/References/Forever/api/forever-api-<version>.<build>.md` and stub it with the client's exact signature;
 never add one because a test failed. Strict globals do not cover **methods** — for anything built
 on a widget method, execute it and assert what it produced.
 
