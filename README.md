@@ -8,8 +8,8 @@ This is the **World of Warcraft: Forever** edition (client 1.60.1, Interface `16
 
 > **[Buffy](https://github.com/Spotnick2/Buffy) is the new consolidated version.** It combines
 > Magely, Priestly and Wildly in one addon on the same engine, and picks Mage, Priest or Druid
-> buffs for the character you log in. Buffy is in beta. It starts with fresh settings rather
-> than importing Magely's, so disable Magely while you use it, or you get two buff windows.
+> buffs for the character you log in. It starts with fresh settings rather than importing
+> Magely's, so disable Magely while you use it, or you get two buff windows.
 
 ![Magely buff window in a group](https://raw.githubusercontent.com/Spotnick2/Magely/main/docs/screenshots/magely-01.png)
 
