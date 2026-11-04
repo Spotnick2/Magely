@@ -26,7 +26,7 @@ local x, y, z = strsplit(",;", "1;2,3")
 H.eq(x .. y .. z, "123", "every character of the separator splits")
 
 ------------------------------------------------------------
--- The r31 shared stub models build 70338, matching Magely's existing
+-- The r34 shared stub models build 70338, matching Magely's existing
 -- MEASURED_ON_BUILD. This pin update does not claim a new runtime measurement.
 ------------------------------------------------------------
 

@@ -1,5 +1,16 @@
 # Magely Changelog
 
+## v1.1.0 - 2026-11-04
+
+### Added
+- `/magely help` now ends with a spell report: your locale, game build, Magely and library
+  versions, and the name of every spell Magely matches buffs against, as your client gave it.
+  A name Magely could not read from the client is flagged and counted. Please include these
+  lines when reporting a problem, especially on a non-English client.
+
+### Changed
+- Updated the embedded LibGroupBuffs library to r34. LibGlass stays at r11.
+
 ## v1.0.6 - 2026-10-22
 
 ### Added

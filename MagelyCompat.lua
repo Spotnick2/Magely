@@ -25,9 +25,10 @@ Magely = Magely or {}
 -- feature check: behaviour changes cannot be feature-detected. r26 is where
 -- lib:New arrived, so nothing older can serve this file; r27 is where a
 -- deferred close says whether the player asked for it (Magely.lua words the
--- two apart), and r28 where lib:Refusal says why New refused. Keep this equal
--- to the MINOR .pkgmeta pins; tests/test_manifest.lua checks that.
-local NEEDS_MINOR = 31
+-- two apart), r28 where lib:Refusal says why New refused, and r34 where
+-- SpellReport counts names of unknown origin apart (/magely help). Keep this
+-- equal to the MINOR .pkgmeta pins; tests/test_manifest.lua checks that.
+local NEEDS_MINOR = 34
 
 -- Magely's own record of the events this client rejected, for
 -- `/dump Magely.eventFailures`. The library also keeps it, as
