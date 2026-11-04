@@ -12,7 +12,7 @@ built Oct 9 (`MEASURED_ON_BUILD` is 70338; see "Build 70338" below).
 
 Magely is a thin host on LibGroupBuffs-1.0, and everything below runs the same code Priestly runs
 in game. The measurements are in `C:\Projects\WoW\Priestly\docs\FOREVER-PROBE.md` and
-`C:\Projects\WoW\References\PORTING-TBC-TO-FOREVER.md`; do not re-derive them here.
+`C:\Projects\WoW\References\Docs\PORTING-TBC-TO-FOREVER.md`; do not re-derive them here.
 
 | Behaviour | Where it was measured |
 |---|---|
