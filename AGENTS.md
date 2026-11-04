@@ -84,7 +84,7 @@ click to whisper a request. None of its data sources work as written on this cli
   is a talent. Neither exists at the current level cap of 20, so nothing can be tested in game.
 
 It comes back as its own slice, on the library rather than beside it. The seam it needed is
-there: **r27** (LibGroupBuffs #24; r28 is pinned) adds `onTick(ui, elapsed)` on the window's
+there: **r27** (LibGroupBuffs #24; r34 is pinned) adds `onTick(ui, elapsed)` on the window's
 half-second tick, in and out of combat, and `onAppearance(ui)`, beside `onLayout` /
 `onVisibility`. The pane's rules are in the library's `AGENTS.md` (companion panes) and its
 `tests/test_companion.lua` builds a Magely-shaped one: non-secure, parented to UIParent and
@@ -547,6 +547,10 @@ fails if the release already exists. Delete the release first if it has to be re
 
 1. **Every tag needs a `CHANGELOG.md` entry, committed before the tag is pushed**, written for
    players.
+   A release tag (`vX.Y.Z`, not an alpha or beta) also updates **both READMEs** in its prep PR:
+   `README.md` and the untracked `README.curseforge.md` describe what this release does, and
+   nothing it no longer does. Say in the PR whether `README.curseforge.md` changed: the owner pastes
+   it into CurseForge and Wago after the release (RELEASING.md §3, §4; #63).
 2. The release type comes from the **tag name**: `alpha` → Alpha, `beta` → Beta, else Release.
 3. **Check the published zip carries both libraries, and nothing else.** CI proves the BigWigs
    packager embeds them, but releases are built by CurseForge's own packager from the tag webhook,

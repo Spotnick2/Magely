@@ -58,7 +58,7 @@ In the popover, **? beside the class icon** means spell range is unknown.
 /magely config   open the options panel
 /magely reset    reset the window position
 /magely pos      why the window is where it is
-/magely help     full command and click reference
+/magely help     full command and click reference, then the spell names Magely reads
 ```
 
 The window opens on its own when you join a group. On other classes Magely shows nothing and
@@ -88,7 +88,7 @@ The GitHub release includes `release.json` for compatible addon managers.
 Download the release zip and extract it so the folder lands at:
 
 ```
-World of Warcraft/_classic_beta_/Interface/AddOns/Magely/
+World of Warcraft/_forever_/Interface/AddOns/Magely/
 ```
 
 ---
@@ -112,8 +112,10 @@ combat take effect after combat ends.
 ## Feedback
 
 Open an [issue on GitHub](https://github.com/Spotnick2/Magely/issues) or leave a comment on
-CurseForge. Include the addon version,
-client build, locale, and whether the problem happened in combat. Typing
+CurseForge. Include whether the problem happened in combat, and the lines `/magely help` ends
+with: your locale, game build, Magely and library versions, and the spell names Magely reads from
+the client, with any it could not read flagged. On a non-English client they are what tells a
+missed buff from a name Magely cannot read. Typing
 `/console scriptErrors 1` in game shows Lua errors that the client otherwise hides.
 
 ## Author

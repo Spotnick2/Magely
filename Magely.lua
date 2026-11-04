@@ -520,9 +520,64 @@ evtFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     end
 end)
 
+local function Say(text) DEFAULT_CHAT_FRAME:AddMessage("|cff3fc7eb[Magely]|r " .. text) end
+
+-- ─── Spell report ────────────────────────────────────────────────────────────
+-- The names Magely matches auras against, as this client gave them, printed
+-- at the end of /magely help. It is the one diagnostic that settles a
+-- non-English report (#48): a name still on its English fallback reads as
+-- missing on everyone. The library answers with data (Engine:SpellReport);
+-- the wording is Magely's, after Priestly's.
+local FROM_NOTE = {
+    resolved   = "",
+    remembered = " (remembered)",
+    fallback   = " |cffff6666(UNRESOLVED - English name)|r",
+    unknown    = " (provenance unknown)",
+}
+
+local function LiveLibraryMinor()
+    local lib, live = LibStub("LibGroupBuffs-1.0", true)
+    if not live then return "?" end
+    if lib.ready ~= live then
+        return tostring(live) .. " (incomplete; r" .. tostring(lib.ready) .. " complete)"
+    end
+    return live
+end
+
+local function PrintSpellReport()
+    if not DEFAULT_CHAT_FRAME then return end
+    local report = engine:SpellReport()
+    Say("Spell names, as this client gave them:")
+    DEFAULT_CHAT_FRAME:AddMessage(string.format("  locale %s, game build %s, Magely %s, library r%s",
+        tostring(report.locale), tostring(API.ClientBuild and API.ClientBuild() or "?"),
+        tostring(VERSION), tostring(LiveLibraryMinor())))
+    for _, entry in ipairs(report) do
+        for _, form in ipairs(entry.forms) do
+            DEFAULT_CHAT_FRAME:AddMessage(string.format("  %-9s %-6s %s%s%s",
+                entry.id, form.role, tostring(form.name),
+                FROM_NOTE[form.from] or "", form.known and "" or " - not learned"))
+        end
+    end
+    for _, r in ipairs(report.ranks or {}) do
+        DEFAULT_CHAT_FRAME:AddMessage(string.format(
+            "  |cffff6666rank unreadable|r  %s  - the client says \"%s\"",
+            tostring(r.name), tostring(r.subtext)))
+    end
+    if (report.unresolved or 0) > 0 then
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffff6666" .. report.unresolved
+            .. " name(s) could not be read from the client.|r Buffs Magely cannot name are "
+            .. "read as missing on everyone. Please report this with the lines above.")
+    end
+    -- r34: forms built by an older copy of the library, whose names may be
+    -- either. Counted apart so they are said rather than hidden in a zero.
+    if (report.unknown or 0) > 0 then
+        DEFAULT_CHAT_FRAME:AddMessage("  " .. report.unknown .. " name(s) of unknown origin "
+            .. "(built by an older copy of the library, so English or this client's).")
+    end
+end
+
 -- ─── Slash commands ──────────────────────────────────────────────────────────
 
-local function Say(text) DEFAULT_CHAT_FRAME:AddMessage("|cff3fc7eb[Magely]|r " .. text) end
 
 SLASH_MAGELY1 = "/magely"
 SlashCmdList["MAGELY"] = function(msg)
@@ -562,6 +617,7 @@ SlashCmdList["MAGELY"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage("  Timer = green >50% / yellow 10-50% / red <10%")
         DEFAULT_CHAT_FRAME:AddMessage("  ? beside the class icon = spell range unknown")
         DEFAULT_CHAT_FRAME:AddMessage("  ? instead of a timer = buff state unreadable, with no cached reading")
+        PrintSpellReport()
 
     elseif cmd == "config" or cmd == "options" or cmd == "settings" or cmd == "opt" then
         if Magely_OpenConfig then Magely_OpenConfig() end
