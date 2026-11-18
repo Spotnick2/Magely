@@ -57,6 +57,21 @@ build and date, when it is measured.
 
 ## Measured by `Tools/MagelyProbe`
 
+### Build 70959, 2026-11-18: the controlled repeat
+
+On a Mage, with the owner's second account (a Priest) in the party, through the procedures
+`/fp steps mp casts` and `/fp steps mp talents` (all checks PASS; `ForeverProbe.lua`
+`steps.records`, `MagelyProbe.lua` log, runs #427-#428). Bugsy recorded no Lua error.
+
+| Question | Answer |
+|---|---|
+| Do other players' casts arrive? | **Yes.** `UNIT_SPELLCAST_SUCCEEDED` fires for a party member, out of combat and in a fight: 3 party casts seen (2 out of combat, 1 in combat), within 41 s of being asked. The 70009 "none seen" was the unconfirmed party, as suspected. |
+| Can the pane tell **which** spell? | **Not from that event.** A party member's `spellID` is a **secret value** on all 3 casts, out of combat as well as in it (`party/nocombat/SECRET` x2, `party/combat/SECRET` x1). Your **own** casts are readable out of combat (`player/nocombat/readable` x4); your own casts **in combat** were not seen in this run. So the event can say *that* a party member cast, never *what*: identifying Innervate / Power Infusion has to come from the caster, by addon message - if a player's own cast is readable in combat too. |
+| Where do talents live? | **In Retail's traits system.** `C_ClassTalents.GetActiveConfigID()` = 650752, and `C_Traits.GetConfigInfo` names it `Mage`, type 4, **1 tree**. `C_SpecializationInfo.GetTalentInfo` still answers nothing in any shape, for yourself or an inspected player: `{ specializationIndex, talentIndex }` throws "query.tier must be specified" on every query, the other two shapes find 0. |
+| Inspection | **Works**, as on 70009: `CanInspect`, `NotifyInspect`, then `INSPECT_READY` for the requested target within a second. `GetInspectSpecialization` answered **1487**, which `GetSpecializationInfoForSpecID` names **Priest (role DAMAGER)**: a class-level ID, as 1486 was on 70009. |
+
+### Build 70009, 2026-09-25
+
 Build **70009**, 2026-09-25, on a non-Mage (so every spell reads `known=false`, as it should).
 
 | Question | Answer |
@@ -69,17 +84,16 @@ Build **70009**, 2026-09-25, on a non-Mage (so every spell reads `known=false`, 
 | A WHISPER to a surnamed name | **Accepted and echoed.** `C_ChatInfo.SendChatMessage(..., "WHISPER", nil, "Karuzo Elegia")` was accepted, chat showed the outgoing `[W To] [Karuzo Elegia]` line, and there was no "No player named" error (which a wrong name did produce on the first run). **Delivery was not confirmed** by the recipient. |
 
 Not answered yet, and why:
-- **Group casts, controlled**: `/fp steps mp casts`. It waits for a second player in your party
-  and asks whether they're online and close, then watches: your own cast first (the control), then
-  theirs out of combat (two minutes; running out is the answer "not delivered"), then in a fight
-  (skippable). Its last step's check passes only on a party cast.
-- **If others' casts turn out not to be delivered**, the pane's remaining source is each provider
-  announcing its own Innervate / Power Infusion by addon message (the TBC pane's `MAGELYCD` sync,
-  minus the combat log) - which needs a player's own casts to be observable, the control above.
+- **Group casts**: answered on 70959, above. They arrive, with the spell ID secret, so the pane's
+  source is each provider announcing its own Innervate / Power Infusion by addon message (the TBC
+  pane's `MAGELYCD` sync, minus the combat log).
+- **Your own casts in combat**: not seen yet. The addon-message source needs a provider's own
+  `spellID` to be readable when it matters, which is in a fight. The next probe question.
 - **Raid members' casts**: not tried.
 - **Whisper to a surname** and **inspection**: answered on the second run, above.
-- **Talents**: `GetTalentInfo` answers nothing; whether the traits system does is the next run:
-  `/fp steps mp talents` (your own talents and config, then an inspected player's).
+- **Talents**: they live in a traits config (70959, above). Whether its tree's nodes say which
+  talents are taken - for yourself, and for an inspected player - is the next run; the probe does
+  not walk the tree yet.
 
 ## Build 70959
 

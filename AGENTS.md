@@ -92,18 +92,20 @@ anchored to `ui:MainFrame()`, laid out in `onLayout`, shown by `ui:IsVisible()`,
 `GetTime()`. What is left is the data (below) and `MagelyCooldowns.lua`, keyed by GUID. **Never
 fork the window for it.**
 
-What `Tools/MagelyProbe` has measured so far (build 70009; `docs/FOREVER-NOTES.md`):
+What `Tools/MagelyProbe` has measured so far (builds 70009 and 70959; `docs/FOREVER-NOTES.md`):
 
 - **The pane itself is possible**: a plain frame anchored under the protected window can be
   resized, moved, hidden and shown in combat.
-- **Other players' casts: not established.** `UNIT_SPELLCAST_SUCCEEDED` registers; one ~8-second
-  run while the owner's second account cast saw no event for any unit, but that account being in
-  the party was not confirmed. A controlled repeat decides it. If others' casts are not delivered,
-  the only source left is each provider announcing its **own** casts by addon message. The
-  controlled repeat is the procedure `/fp steps mp casts`.
-- **Talents cannot be read** through `C_SpecializationInfo.GetTalentInfo` in any query shape, for
-  yourself or an inspected target; inspection itself works. Whether Retail's traits system holds
-  them is the probe's next question (`/fp steps mp talents`).
+- **Other players' casts arrive, but not which spell** (70959, `/fp steps mp casts`):
+  `UNIT_SPELLCAST_SUCCEEDED` fires for a party member in and out of combat, and its `spellID` is a
+  **secret value** every time, out of combat too. Your own casts are readable out of combat; in
+  combat is not measured yet. So the pane's source is each provider announcing its **own** casts
+  by addon message, which still needs a player's own `spellID` to be readable in combat.
+- **Talents live in a traits config** (70959, `/fp steps mp talents`): `C_ClassTalents.
+  GetActiveConfigID` answers, and `C_Traits.GetConfigInfo` names it after the class, with one
+  tree. `C_SpecializationInfo.GetTalentInfo` still answers nothing in any query shape, for
+  yourself or an inspected target; inspection itself works. Whether the tree's nodes say which
+  talents are taken is the probe's next question.
 
 ## Repository Layout
 
