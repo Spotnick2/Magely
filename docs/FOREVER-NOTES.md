@@ -69,15 +69,17 @@ Build **70009**, 2026-09-25, on a non-Mage (so every spell reads `known=false`, 
 | A WHISPER to a surnamed name | **Accepted and echoed.** `C_ChatInfo.SendChatMessage(..., "WHISPER", nil, "Karuzo Elegia")` was accepted, chat showed the outgoing `[W To] [Karuzo Elegia]` line, and there was no "No player named" error (which a wrong name did produce on the first run). **Delivery was not confirmed** by the recipient. |
 
 Not answered yet, and why:
-- **Group casts, controlled**: with the second account **confirmed in your party**, `/mprobe cast on`,
-  have it cast several spells over a minute - out of combat and in a fight - then `/mprobe report`.
-  Cast yourself during the same run, as the control: `player` casts are counted too.
+- **Group casts, controlled**: `/fp steps mp casts`. It waits for a second player in your party
+  and asks whether they're online and close, then watches: your own cast first (the control), then
+  theirs out of combat (two minutes; running out is the answer "not delivered"), then in a fight
+  (skippable). Its last step's check passes only on a party cast.
 - **If others' casts turn out not to be delivered**, the pane's remaining source is each provider
   announcing its own Innervate / Power Infusion by addon message (the TBC pane's `MAGELYCD` sync,
   minus the combat log) - which needs a player's own casts to be observable, the control above.
 - **Raid members' casts**: not tried.
 - **Whisper to a surname** and **inspection**: answered on the second run, above.
-- **Talents**: `GetTalentInfo` answers nothing; whether the traits system does is the next run.
+- **Talents**: `GetTalentInfo` answers nothing; whether the traits system does is the next run:
+  `/fp steps mp talents` (your own talents and config, then an inspected player's).
 
 ## Build 70338
 
@@ -116,18 +118,36 @@ The client moved to **70009** and SavedVariables load back. Priestly re-measured
 ## The cooldown pane's questions - `Tools/MagelyProbe`
 
 The pane (slice 5, LibGroupBuffs #24) waits on these. **Most need no Mage and no level 40**: any
-character in a group can answer them. Deploy with `pwsh Tools/deploy.ps1 -ProbeOnly`, then:
+character in a group can answer them. The probe is a **ForeverProbe module** (`/fp mp`;
+`C:\Projects\WoW\ForeverProbe\docs\GUIDE.md`). Deploy with `pwsh Tools/deploy.ps1 -ProbeOnly`,
+which deploys `..\ForeverProbe` first, then `/reload`.
+
+The experiments that need your hands are **procedures**: a panel of buttons, one step at a time,
+every outcome saved (`/fp steps` lists them):
+
+| Procedure | Answers | Needs |
+|---|---|---|
+| `/fp steps mp casts` | Does `UNIT_SPELLCAST_SUCCEEDED` fire for party members, and is `spellID` readable, **secret** or throwing, in and out of combat? Your own cast is the control | A second player in your party |
+| `/fp steps mp talents` | Your own talents and talent config (`C_ClassTalents` / `C_Traits`), then an inspected player's, by every `GetTalentInfo` query shape | A player target with talents |
+| `/fp steps mp pane` | Can a **plain** frame anchored under a protected one be resized, re-anchored, hidden and shown in combat? (The protected stand-in's own hide is the control, and should be refused.) | Any character, a fight |
+
+The single commands, `/fp mp <command>`:
 
 | Command | Answers | Needs |
 |---|---|---|
-| `/mprobe spells` | Do the Mage / Druid / Priest IDs above resolve, and which does this character know? Arcane Powder's icon | Any character |
-| `/mprobe cast on`, then `/mprobe report` | Does `UNIT_SPELLCAST_SUCCEEDED` fire for party and raid members, and is `spellID` readable, **secret** or throwing, in and out of combat? | A group; people casting anything |
-| `/mprobe pane build`, fight, `/mprobe pane test`, `/mprobe pane remove` | Can a **plain** frame anchored under a protected one be resized, re-anchored, hidden and shown in combat? (The protected stand-in's own hide is the control, and should be refused.) | Any character, a fight |
-| `/mprobe whisper First Surname` | Is a WHISPER to a surnamed name accepted through `C_ChatInfo.SendChatMessage`? Ask the recipient whether it arrived | A second character |
-| `/mprobe inspect` (with a target) | What `C_SpecializationInfo.GetTalentInfo` returns, for yourself and an inspected unit, by specialization/talent index, by tier/column, and by specialization with tier/column | A target with talents |
+| `spells` | Do the Mage / Druid / Priest IDs above resolve, and which does this character know? Arcane Powder's icon | Any character |
+| `cast on` / `cast off`, `report` | The casts watch by hand | A group |
+| `pane build`, `pane test`, `pane remove` | The pane by hand | Any character, a fight |
+| `whisper First Surname` | Is a WHISPER to a surnamed name accepted through `C_ChatInfo.SendChatMessage`? Ask the recipient whether it arrived (the whisper is a deliberate chat line) | A second character |
+| `inspect` (with a target) | Your own talents and config, then inspects the target | A target with talents |
+| `report`, `reset`, `clear` | This session's results; forget them; empty the saved log | |
 
-Results print in chat and land in `MagelyProbeDB` on disk after `/reload`. Record the answers here,
-with the build and the date.
+Lines go to the `/fp` console, never chat (`/fp mirror on` copies them for the session). After a
+`/reload`, `WTF\Account\<account>\SavedVariables\MagelyProbe.lua` holds the log (`log`, the `STEP`
+lines included) and this session's answers (`results`, `casts`, `samples`, `blocked`), and
+`ForeverProbe.lua` holds each procedure's record (`steps.records["MagelyProbe/<name>"]`). Each load
+starts the answers afresh; the log carries every session, stamped with its run. Record the answers
+here, with the build and the date.
 
 ## In-game checklist for testers
 
