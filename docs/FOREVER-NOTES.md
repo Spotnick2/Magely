@@ -152,6 +152,11 @@ The client moved to **70009** and SavedVariables load back. Priestly re-measured
 
 ## In-game checklist for testers
 
+The guided form of this list is `/fp steps mp check` (`pwsh Tools\deploy.ps1 -Probe`, then
+`/reload`): it reads the versions and the spell report, sets each Amplify / Dampen mode and checks
+the rows, waits for your clicks in and out of combat, checks the footer, and puts your settings
+back. What it can't see (the options panel, a window closed by hand staying closed) it asks.
+
 ```
 /console scriptErrors 1
 /reload
