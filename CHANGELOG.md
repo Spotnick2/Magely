@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Changed
+- **Checked on game build 1.60.1.70959**, the current WoW: Forever client. Nothing Magely relies on
+  changed.
 - Updated the embedded LibGlass library to r13 (was r11). Nothing changes on screen: r12 makes
   LibGlass's fonts follow the client's language and r13 adds a button skin, and Magely's window
   uses neither.

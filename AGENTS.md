@@ -336,10 +336,10 @@ separate install.
 still written so losing every setting at login is survivable - the beta has broken this once, and
 Magely v1.0.0 shipped before the fix.
 
-`MEASURED_ON_BUILD` in `MagelyConfig.lua` is **70338** (2026-10-11): the 70338 API dump compared
-with 70205's (nothing Magely, the library or LibGlass calls removed or changed; Priestly's
-`docs/FOREVER-PROBE.md`, "70338 against 70205") and the owner's test in game on 70338. 70205
-(#35) rested on the dump diff and v1.0.4 in game. `/pprobe` in a fight (aura secrecy) and the
+`MEASURED_ON_BUILD` in `MagelyConfig.lua` is **70959** (2026-11-18, #67): the 70959 API dump
+compared with 70338's (nothing Magely, the library or LibGlass calls removed or changed) and v1.1.0
+running for a Mage on 70959. 70338 rested on the dump diff and the owner's test in game; 70205
+(#35) on the dump diff and v1.0.4 in game. `docs/FOREVER-NOTES.md` has each build. `/pprobe` in a fight (aura secrecy) and the
 full-exit SavedVariables check were last run in full on 70009 (Spotnick2/priestly#60). Record
 re-runs in `docs/FOREVER-NOTES.md`.
 `test_config_seam` pins it independently of the source, so bump the test with the constant after

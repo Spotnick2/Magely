@@ -5,8 +5,8 @@ Priestly on the same library, by the probe, or on a Mage - and what is **Mage-sp
 so a tester knows what to look at and nobody mistakes an assumption for a measurement. v1.0.0
 shipped before anyone on the port had a Mage; the first pass on one is recorded below.
 
-Client: WoW: Forever 1.60.1, builds 69913, 69977, 70009 (from 2026-09-25), 70205 and **70338**,
-built Oct 9 (`MEASURED_ON_BUILD` is 70338; see "Build 70338" below).
+Client: WoW: Forever 1.60.1, builds 69913, 69977, 70009 (from 2026-09-25), 70205, 70338 and
+**70959**, built Nov 13 (`MEASURED_ON_BUILD` is 70959; see "Build 70959" below).
 
 ## Shared with Priestly — taken as measured
 
@@ -78,6 +78,27 @@ Not answered yet, and why:
 - **Raid members' casts**: not tried.
 - **Whisper to a surname** and **inspection**: answered on the second run, above.
 - **Talents**: `GetTalentInfo` answers nothing; whether the traits system does is the next run.
+
+## Build 70959
+
+`MEASURED_ON_BUILD` moved to **70959** on 2026-11-18 (#67). What that rests on:
+
+- **API dump**: 70959's declarations against 70338's (`Compare-Dumps.ps1`): functions +28 -9,
+  events +9 -3, tables +9 -6, widget methods unchanged (7530). Nothing Magely, LibGroupBuffs r34
+  or LibGlass r11 names was removed or changed; the changes are mail and secure transfer, title
+  icons, transmog, game-rules presets, `PARTY_INVITE_REQUEST` and `PLAYER_LEVEL_UP` gaining a
+  field, and `GroupBuffItem` gaining `displaySpellID` (only `C_CooldownViewer` returns it).
+- **In game**: Magely v1.1.0 ran for a Mage on 70959 - its load-check marker in that character's
+  `MagelyDB` recorded build 70959 on 2026-11-17, and the marker is written only on the Mage path
+  (`IsMage()` gates the config's event handler). No buff was learned in that session
+  (`learnedDurations` is empty), so no cast was seen, and no checklist pass on this build is
+  recorded.
+- **Owner's confirmation**: the owner confirmed 70959 as Magely's measured build on 2026-11-18
+  (#69), on the evidence above.
+- `GetBuildInfo()` on 70959 reports `Nov 13 2026` (ForeverProbe's log). The shared test stub at
+  LibGroupBuffs r34 still models 70338, which `tests/test_stub.lua` pins; that moves with the
+  library, not with this constant.
+- `/pprobe` in a fight and the full-exit SavedVariables check were last run in full on 70009.
 
 ## Build 70338
 
