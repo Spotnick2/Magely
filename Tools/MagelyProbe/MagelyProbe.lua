@@ -189,14 +189,25 @@ local function WatchCasts(on)
     end
 end
 
--- How many casts of one kind of unit were seen this session, any state.
-local function CastsBy(kind, state)
+-- How many casts of one kind of unit were seen since `base` (a copy of
+-- DB.casts taken when a measurement began), in one combat state or any; with
+-- no base, this whole session. A key never goes below its base: a reset
+-- mid-run starts the counters again from 0.
+local function CastsSince(base, kind, state)
     local n = 0
     for key, count in pairs(DB and DB.casts or {}) do
         local k, s = key:match("^([^/]+)/([^/]+)/")
-        if k == kind and (state == nil or s == state) then n = n + count end
+        if k == kind and (state == nil or s == state) then
+            n = n + math.max(0, count - ((base and base[key]) or 0))
+        end
     end
     return n
+end
+
+local function CopyCasts()
+    local copy = {}
+    for key, count in pairs(DB and DB.casts or {}) do copy[key] = count end
+    return copy
 end
 
 ------------------------------------------------------------
@@ -470,6 +481,21 @@ end
 
 local IGNORED = "INSPECT_READY ignored (not the requested unit)"
 
+-- Each request that went out gets a number; P.OnInspectReady writes the
+-- number it answered. The `talents` procedure waits for its own request's
+-- number, so another addon's INSPECT_READY, or an answer from an earlier run,
+-- can't complete it - whichever handler the event reaches first.
+local inspectRequest, inspectAnswered = 0, 0
+local pendingRequest
+
+-- What one inspection publishes. Cleared when a new request is made, so a
+-- result read afterwards belongs to that request or is absent.
+local REQUEST_KEYS = {
+    "CanInspect(target)", "NotifyInspect(target)", "INSPECT_READY", "GetInspectSpecialization(target)",
+    "inspected spec by ID", "inspected talents by specializationIndex/talentIndex",
+    "inspected talents by tier/column", "inspected talents by specializationIndex/tier/column",
+}
+
 function P.OnInspectReady(guid)
     if not DB then return end
     local UG = G("UnitGUID")
@@ -481,6 +507,8 @@ function P.OnInspectReady(guid)
         return
     end
     inspectGUID = nil
+    local answering = pendingRequest
+    pendingRequest = nil
     local okT, stillTarget = pcall(function() return UG and UG("target") == guid end)
     if not (okT and stillTarget) then
         Record("INSPECT_READY", "arrived after the target changed - not queried, run it again")
@@ -498,6 +526,13 @@ function P.OnInspectReady(guid)
     end
     local clear = G("ClearInspectPlayer")
     if clear then pcall(clear) end
+    -- Last: the mark means this request's results are all written.
+    if answering then inspectAnswered = answering end
+end
+
+-- True once the newest request that went out has been answered.
+local function InspectAnswered()
+    return inspectRequest > 0 and inspectAnswered == inspectRequest
 end
 
 local function OwnTalents()
@@ -510,6 +545,12 @@ end
 -- Sends the inspection; true when a request went out.
 local function SendInspect()
     local UE, UG, CanI, Notify = G("UnitExists"), G("UnitGUID"), G("CanInspect"), G("NotifyInspect")
+    -- A new measurement: nothing an earlier request published may be read as
+    -- this one's answer, and its number is new from here, so an attempt that
+    -- stops early (no target, can't inspect, refused) is never "answered".
+    if DB then for _, key in ipairs(REQUEST_KEYS) do DB.results[key] = nil end end
+    inspectRequest = inspectRequest + 1
+    pendingRequest = nil
     if not (UE and UE("target")) then Say("target someone with talents and run it again") return false end
     if not (CanI and Notify) then
         Record("inspect", string.format("CanInspect %s, NotifyInspect %s",
@@ -531,10 +572,12 @@ local function SendInspect()
     end
     local okG, guid = pcall(function() return UG and UG("target") end)
     inspectGUID = okG and guid or nil
+    -- Pending before the call: the answer may arrive inside it.
+    pendingRequest = inspectRequest
     local okN, err = pcall(Notify, "target")
     -- No request went out, so no INSPECT_READY is ours: somebody else's
     -- inspection of the same unit must not be published under this one.
-    if not okN then inspectGUID = nil end
+    if not okN then inspectGUID, pendingRequest = nil, nil end
     Record("NotifyInspect(target)", okN and "sent - waiting for INSPECT_READY" or ("threw: " .. tostring(err)))
     return okN
 end
@@ -597,9 +640,14 @@ Probe:Command("clear", function() Probe:ClearLog(); Say("log cleared") end, "emp
 -- Do other players' casts arrive? One ~8-second run on 70009 saw nothing for
 -- any unit, but whether the second account was in the party was not
 -- confirmed. This is the controlled repeat: the party is confirmed first,
--- your own cast is the control, and a timeout is the "no" answer.
+-- your own cast is the control, and a timeout is the "no" answer. Every count
+-- is from `castsBase`, taken when the watch starts, so a second run (or casts
+-- an earlier /fp mp cast on saw) can't answer for this one.
+local castsBase
+local function RunCasts(kind, state) return CastsSince(castsBase, kind, state) end
 Probe:Steps("casts", {
     title = "Do other players' casts arrive?",
+    rev = 2,
     { text = "Get a second player (your other account will do) into your party, both in the same zone.",
       wait = function()
           local n = G("GetNumGroupMembers")
@@ -609,26 +657,27 @@ Probe:Steps("casts", {
     { text = "Is the other player online and close to you?", ask = true },
     { text = "Watching casts now.", auto = true, run = function()
           WatchCasts(true)
+          castsBase = CopyCasts()
           return DB.results["UNIT_SPELLCAST_SUCCEEDED registers"]
       end,
       check = function() return DB.results["UNIT_SPELLCAST_SUCCEEDED registers"] == "true", "registered" end },
     { text = "The control: cast any spell yourself, out of combat.",
-      wait = function() return CastsBy("player") > 0, "your casts seen: " .. CastsBy("player") end,
+      wait = function() return RunCasts("player") > 0, "your casts seen: " .. RunCasts("player") end,
       timeout = 120 },
     { text = "Now the other player casts any spell, out of combat (a buff on themselves is fine). "
           .. "Waits up to 2 minutes: running out means their casts don't arrive.",
-      wait = function() return CastsBy("party") > 0, "party casts seen: " .. CastsBy("party") end,
+      wait = function() return RunCasts("party") > 0, "party casts seen: " .. RunCasts("party") end,
       timeout = 120 },
     { text = "In a fight (pull a mob together), the other player casts again. Skip if you can't.",
-      wait = function() return CastsBy("party", "combat") > 0,
-          "party casts in combat: " .. CastsBy("party", "combat") end,
+      wait = function() return RunCasts("party", "combat") > 0,
+          "party casts in combat: " .. RunCasts("party", "combat") end,
       timeout = 180 },
     { text = "The counts.", auto = true, run = function()
           Report()
           WatchCasts(false)
-          return CastsBy("player"), CastsBy("party"), CastsBy("party", "combat")
+          return RunCasts("player"), RunCasts("party"), RunCasts("party", "combat")
       end,
-      check = function() return CastsBy("party") > 0, "party casts: " .. CastsBy("party") end },
+      check = function() return RunCasts("party") > 0, "party casts this run: " .. RunCasts("party") end },
     { text = "Type /reload to save the results (or press Reload now).", reload = true },
 })
 
@@ -636,6 +685,7 @@ Probe:Steps("casts", {
 -- in any shape on 70009, for yourself or an inspected target.
 Probe:Steps("talents", {
     title = "Where do talents live?",
+    rev = 2,
     { text = "Your own talents and talent config.", auto = true, run = function()
           OwnTalents()
           return DB.results["C_ClassTalents.GetActiveConfigID"]
@@ -653,7 +703,12 @@ Probe:Steps("talents", {
       end,
       check = function() return DB.results["NotifyInspect(target)"] ~= nil
           and DB.results["NotifyInspect(target)"]:find("^sent") ~= nil, DB.results["NotifyInspect(target)"] end },
-    { text = "Waiting for the inspection to arrive (INSPECT_READY).", event = "INSPECT_READY", shapeOnly = true },
+    -- Not an event step: that would complete on any INSPECT_READY, another
+    -- addon's included, and before or after our own handler had written the
+    -- answer. This waits for the answer to THIS request.
+    { text = "Waiting for the inspection to arrive (INSPECT_READY for your target).",
+      wait = function() return InspectAnswered(), "waiting for the answer to this request" end,
+      timeout = 30 },
     { text = "What came back.", auto = true, run = function()
           return DB.results["INSPECT_READY"], DB.results["inspected talents by specializationIndex/tier/column"],
               DB.results["inspected spec by ID"]
