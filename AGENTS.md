@@ -560,8 +560,8 @@ fails if the release already exists. Delete the release first if it has to be re
      `LibGroupBuffs-1.0/`: **four** (the XML, `LibStub/LibStub.lua`, `LibGroupBuffs.lua`,
      `LICENSE`). There is no `Media/` any more.
    - `lua tests/libfiles.lua --glass <p>/LibGlass-1.0 ship`, then count the files in
-     `LibGlass-1.0/`: **thirty-one** at r5 (the XML, the two files it loads, `LICENSE`, 27 textures;
-     r1 had 15, so 19 files). The count moves with the pin.
+     `LibGlass-1.0/`: **thirty-eight** at r13 (the XML, the two files it loads, `LICENSE`, 34
+     textures; r5 to r11 had 27, so 31 files). The count moves with the pin.
    - Both libraries equal to their pins, and the released `MagelyConfig.lua` must still say
      `"@" .. "project-version@"` (#32).
 

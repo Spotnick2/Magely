@@ -1,5 +1,12 @@
 # Magely Changelog
 
+## Unreleased
+
+### Changed
+- Updated the embedded LibGlass library to r13 (was r11). Nothing changes on screen: r12 makes
+  LibGlass's fonts follow the client's language and r13 adds a button skin, and Magely's window
+  uses neither.
+
 ## v1.1.0 - 2026-11-04
 
 ### Added
