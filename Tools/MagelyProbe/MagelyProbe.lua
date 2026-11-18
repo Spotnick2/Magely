@@ -10,11 +10,14 @@
 --   /fp steps mp check    the guided check (AGENTS.md, Validation): what is
 --                         Mage-specific and not yet seen in play
 --
--- The check changes a few of Magely's settings so each mode can be seen
--- (amplifyMode, dampenMode, trackAmplify, trackDampen, showSolo), through
--- Magely's own write path, the way the options panel does. It saves them
--- first and puts them back at the end; /fp mp restore does it by hand if the
--- check is stopped half-way. Nothing else of Magely's is written.
+-- The check changes some of Magely's settings so each mode can be seen
+-- (amplifyMode, dampenMode, trackIntellect/Amplify/Dampen, showSolo), and
+-- its options step has the owner click through the rest, through Magely's
+-- own write path, the way the options panel does. So it saves every setting
+-- in Magely's DEFAULTS and both instance lists first, and puts them all back
+-- at the end; /fp mp restore does it by hand if the check is stopped
+-- half-way. It never rebuilds Magely's window itself: the rows it waits for
+-- must come from Magely's own paths.
 --
 -- This is not the cooldown pane's old probe (retired in #75; the pane is
 -- Buffy's): the name came back with a different job. Nothing here ships
@@ -28,7 +31,8 @@ local MAX_LOG = 3000
 -- through LibStub, so the checks are "at least".
 local EXPECT = { gb = 36, glass = 13 }
 local SPELL = { intellect = 1459, brilliance = 23028, amplify = 1008, dampen = 604 }
-local SAVED_KEYS = { "trackIntellect", "trackAmplify", "trackDampen", "amplifyMode", "dampenMode", "showSolo" }
+-- Only if Magely's DEFAULTS can't be read: the settings this check itself sets.
+local FALLBACK_KEYS = { "trackIntellect", "trackAmplify", "trackDampen", "amplifyMode", "dampenMode", "showSolo" }
 
 local Probe = ForeverProbe:Module("MagelyProbe", { api = 1, cmd = "mp" })
 local function say(msg) Probe:Say(msg) end
@@ -144,77 +148,147 @@ local function rows()
     return out, visible
 end
 
--- Waits for Magely's coalesced rebuild, then reads the rows.
-local function rowsAfterRebuild()
-    local t = T()
-    if t then t.UpdateUI() end
-    return rows()
-end
+-- The rows as Magely left them. Never a rebuild from here: the check is
+-- whether Magely's own paths (a setting's rebuild, the UNIT_AURA refresh)
+-- update the window, and a rebuild by the observer would make them pass
+-- whether or not they work (Codex, #78).
+local rowsNow = rows
 
 -- ─── settings: changed through Magely's write path, saved first ────────────
 
-local function saveSettings()
-    if DB.saved then say("settings already saved from an earlier start: keeping those") return end
-    local saved = {}
-    for _, key in ipairs(SAVED_KEYS) do saved[key] = effective(key) end
-    DB.saved = saved
-    say("saved your settings: amplifyMode " .. show(saved.amplifyMode) .. ", dampenMode " .. show(saved.dampenMode)
-        .. ", showSolo " .. show(saved.showSolo))
+-- Every setting the check, or the owner following it, can change: each of
+-- Magely's DEFAULTS (the options-panel step has them click everything) and
+-- both instance lists. Saved as in effect, and put back the same way.
+local function settingKeys()
+    local tc = TC()
+    local keys = {}
+    for key in pairs(tc and tc.DEFAULTS or {}) do keys[#keys + 1] = key end
+    if #keys == 0 then keys = FALLBACK_KEYS end
+    table.sort(keys)
+    return keys
 end
 
+local INSTANCE_LISTS = { amplify = "amplifyInstances", dampen = "dampenInstances" }
+
+local function copyList(which)
+    local list = setting(INSTANCE_LISTS[which])
+    local copy = {}
+    if type(list) == "table" then for name, on in pairs(list) do copy[name] = on and true or false end end
+    return copy
+end
+
+local function saveSettings()
+    if DB.saved then say("settings already saved from an earlier start: keeping those") return end
+    local values = {}
+    for _, key in ipairs(settingKeys()) do values[key] = effective(key) end
+    DB.saved = { values = values, instances = { amplify = copyList("amplify"), dampen = copyList("dampen") } }
+    say("saved your settings: amplifyMode " .. show(values.amplifyMode) .. ", dampenMode " .. show(values.dampenMode)
+        .. ", showSolo " .. show(values.showSolo) .. ", and both instance lists")
+end
+
+-- Through Magely's write path, then the hooks the options panel calls.
 local function apply(changes)
     local set = G("Magely_SetConfig")
     if type(set) ~= "function" then error("Magely_SetConfig is missing (Magely not loaded?)", 0) end
-    local solo
-    for key, value in pairs(changes) do
-        set(key, value)
-        if key == "showSolo" then solo = value end
-    end
-    if solo ~= nil and G("Magely_OnSoloToggle") then Magely_OnSoloToggle(solo) end
+    for key, value in pairs(changes) do set(key, value) end
+    if changes.showSolo ~= nil and G("Magely_OnSoloToggle") then Magely_OnSoloToggle(changes.showSolo) end
+    if changes.frameAlpha ~= nil and G("Magely_ApplyAlpha") then Magely_ApplyAlpha() end
     if G("Magely_ForceRebuild") then Magely_ForceRebuild() end
 end
 
+-- Intellect too: the clicks and the footer need its row (Codex, #78).
 local function setModes(mode)
-    apply({ trackAmplify = true, trackDampen = true, amplifyMode = mode, dampenMode = mode, showSolo = true })
-    say("Amplify and Dampen set to " .. mode)
+    apply({ trackIntellect = true, trackAmplify = true, trackDampen = true,
+            amplifyMode = mode, dampenMode = mode, showSolo = true })
+    say("Amplify and Dampen set to " .. mode .. " (Intellect tracked)")
+end
+
+-- What differs from the saved settings now, as "key" or "amplify:Instance".
+local function differences(saved)
+    local diff = {}
+    for key, value in pairs(saved.values or {}) do
+        if effective(key) ~= value then diff[#diff + 1] = key end
+    end
+    for which, list in pairs(saved.instances or {}) do
+        local now = copyList(which)
+        for name, on in pairs(list) do
+            if (now[name] == true) ~= on then diff[#diff + 1] = which .. ":" .. name end
+        end
+    end
+    table.sort(diff)
+    return diff
 end
 
 local function restore()
     if not DB or not DB.saved then say("nothing to restore") return true end
     local saved = DB.saved
-    apply(saved)
-    local ok = true
-    for _, key in ipairs(SAVED_KEYS) do
-        if setting(key) ~= saved[key] then ok = false end
+    -- An older probe saved a flat table of a few keys.
+    if not saved.values then saved = { values = saved, instances = {} } end
+    apply(saved.values)
+    local setIn = G("Magely_SetInstance")
+    for which, list in pairs(saved.instances or {}) do
+        local now = copyList(which)
+        for name, on in pairs(list) do
+            if (now[name] == true) ~= on and setIn then setIn(which, name, on) end
+        end
     end
-    say("settings restored" .. (ok and "" or " - but some still differ, check /magely config"))
+    if G("Magely_ForceRebuild") then Magely_ForceRebuild() end
+    local diff = differences(saved)
+    local ok = #diff == 0
+    say(ok and "settings restored" or ("settings restored, but these still differ: " .. table.concat(diff, ", ")))
     if ok then DB.saved = nil end
-    return ok
+    return ok, ok and "restored" or table.concat(diff, ", ")
 end
 
 -- ─── casts (the clicks) ─────────────────────────────────────────────────────
 
+-- Only a cast of one of Magely's buffs counts as a click: a Frostbolt at the
+-- mob is not the window casting (Codex, #78). Matched by the name the client
+-- gives (any rank, any locale); a secret spell ID can't be matched, so that
+-- cast is logged and the owner says whether it was the click (Done by hand).
+local BUFF_IDS = { SPELL.intellect, SPELL.brilliance, SPELL.amplify, SPELL.dampen }
+
+local function spellName(id)
+    local S = G("C_Spell")
+    local ok, info = pcall(function() return S and S.GetSpellInfo and S.GetSpellInfo(id) end)
+    return ok and type(info) == "table" and info.name or nil
+end
+
+local function isBuff(name)
+    if not name then return false end
+    for _, id in ipairs(BUFF_IDS) do
+        if spellName(id) == name then return true end
+    end
+    return false
+end
+
 -- Your own successful casts, counted from the moment a step arms them.
-local casts, lastCast, armedAt = 0, nil, nil
+local casts, buffCasts, lastCast, armedAt = 0, 0, nil, nil
 local castWatch = G("CreateFrame")("Frame")
 Probe:RegisterEvents(castWatch, { "UNIT_SPELLCAST_SUCCEEDED" })
 castWatch:SetScript("OnEvent", function(_, _, unit, _, spellID)
     if unit ~= "player" then return end
     casts = casts + 1
     local secret = G("issecretvalue") and G("issecretvalue")(spellID) and true or false
-    lastCast = { id = not secret and spellID or nil, secret = secret, combat = inCombat() }
-    say("cast #" .. casts .. ": spellID " .. (secret and "<secret>" or show(spellID)) .. ", combat "
-        .. show(lastCast.combat))
+    local name = not secret and spellName(spellID) or nil
+    local buff = not secret and isBuff(name)
+    if buff then buffCasts = buffCasts + 1 end
+    lastCast = { id = not secret and spellID or nil, name = name, buff = buff, secret = secret, combat = inCombat() }
+    say("cast #" .. casts .. ": spellID " .. (secret and "<secret>" or show(spellID)) .. " (" .. show(name)
+        .. (buff and ", one of Magely's buffs" or "") .. "), combat " .. show(lastCast.combat))
 end)
 
 local function castSince(wantCombat)
-    if not armedAt then armedAt = casts end
-    if casts > armedAt and lastCast and (wantCombat == nil or lastCast.combat == wantCombat) then
-        return true, lastCast.id, lastCast.combat
+    if not armedAt then armedAt = buffCasts end
+    if buffCasts > armedAt and lastCast and lastCast.buff and (wantCombat == nil or lastCast.combat == wantCombat) then
+        return true, lastCast.id, lastCast.name, lastCast.combat
     end
-    return false, wantCombat and "no cast in combat yet" or "no cast yet"
+    if lastCast and lastCast.secret then
+        return false, "a cast with a secret spell ID: press Done if it was your click"
+    end
+    return false, wantCombat and "no buff cast in combat yet" or "no buff cast yet"
 end
-local function arm() armedAt = casts; return casts end
+local function arm() armedAt = buffCasts; return buffCasts end
 
 -- ─── commands ───────────────────────────────────────────────────────────────
 
@@ -229,7 +303,7 @@ Probe:Command("clear", function() Probe:ClearLog(); say("log cleared") end, "emp
 
 -- Whether the window shows (or not) the Amplify and Dampen rows, now.
 local function rowsMatch(wantAmplify, wantDampen)
-    local r = rowsAfterRebuild()
+    local r = rowsNow()
     local ok = (r.amplify == true) == wantAmplify and (r.dampen == true) == wantDampen
     return ok, "amplify " .. show(r.amplify == true) .. ", dampen " .. show(r.dampen == true)
 end
@@ -247,7 +321,7 @@ local function showWindow()
 end
 
 Probe:Steps("check", {
-    rev = 2,                                   -- 2: Read refuses outdoors; restore hint
+    rev = 3,  -- 2: Read refuses outdoors; restore hint. 3: observe only, every setting, buff casts (Codex, #78)
     title = "Magely's in-game check (Mage-specific)",
     { text = "On a Mage of level 18 or higher (Amplify Magic), out of combat, alone or in a party. "
           .. "Type /console scriptErrors 1 once, then press Next. This check changes your Amplify and "
@@ -286,13 +360,13 @@ Probe:Steps("check", {
     { text = "Cast Amplify Magic on yourself (or a party member). The Amplify row should appear.",
       timeout = 120, screenshot = "detected, amplify",
       wait = function()
-          local r = rowsAfterRebuild()
+          local r = rowsNow()
           return r.amplify == true, r.amplify and "amplify row shown" or "amplify row not shown yet"
       end },
     { text = "Now cast Dampen Magic on yourself (it replaces Amplify on that target). The Dampen row should appear.",
       timeout = 120, screenshot = "detected, dampen",
       wait = function()
-          local r = rowsAfterRebuild()
+          local r = rowsNow()
           return r.dampen == true, r.dampen and "dampen row shown" or "dampen row not shown yet"
       end },
     { text = "Did each row appear within a second or two of the buff landing, with nothing odd?", ask = true },
@@ -373,7 +447,8 @@ Probe:Steps("check", {
           return (n > 0) == brilliance, "Brilliance known " .. show(brilliance) .. ", footer items " .. n
       end },
     { text = "Open /magely config. Click through every checkbox, both mode groups, the slider and the "
-          .. "Instances tab. All work, nothing odd?", ask = true, screenshot = "options" },
+          .. "Instances tab (all of it is put back at the end). All work, nothing odd?",
+      ask = true, screenshot = "options" },
 
     -- put it back
     { text = "Putting your settings back.", auto = true,

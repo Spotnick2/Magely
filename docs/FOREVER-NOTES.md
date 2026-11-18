@@ -150,6 +150,30 @@ The client moved to **70009** and SavedVariables load back. Priestly re-measured
   announces the fix once; a latch keeps later patches quiet, including r12's (r15, LibGroupBuffs
   #31).
 
+## The release check on 70959 (2026-11-18)
+
+The owner ran `/fp steps mp check` on a Mage (Magely v1.1.0 deployed with LibGroupBuffs r36 and
+LibGlass r13), to the end, run #438 (`ForeverProbe.lua` `steps.records["MagelyProbe/check"]`, the
+`MagelyProbe.lua` log). Bugsy recorded no Lua error that session, and none ever from Magely, its
+libraries or the probe. It was the procedure's **rev 1**, before #78's review: its row waits forced
+a rebuild themselves, and its click waits took any spell. So:
+
+| Item | Result |
+|---|---|
+| Versions, the spell report | PASS: r36, LibGlass r13; nothing unresolved, nothing of unknown origin |
+| "always" | Intellect, Amplify and Dampen rows |
+| "detected" | The rows came and went with Amplify and Dampen on a member. Read after the probe's own rebuild, so not on its own proof that Magely's aura refresh does it; **the owner saw the same in normal play** after the check, with both modes back on "detected" (Amplify and Dampen rows beside Buffy's, for the same member) |
+| "by instance", outdoors | no Amplify or Dampen row, as it should |
+| "by instance" inside a dungeon, a hand-closed window staying closed on zoning in | **not run** (skipped) |
+| Left-click on yourself, right-click on a party member, a click in combat | each cast Arcane Intellect (1461) and landed where meant (owner); timers counted in combat and nobody showed MISS for a never-seen member (owner) |
+| Footer | no Arcane Powder, correctly: Brilliance is not known at this level |
+| Options panel | every control works (owner) |
+| Settings put back | PASS (only the six keys rev 1 saved; rev 3 saves them all) |
+
+Still unmeasured on a Mage: instance mode inside a dungeon, the close surviving a zone-in,
+Brilliance and its reagent (level 56), raids. Rev 3 of the procedure only observes Magely's
+window and only counts a buff cast as a click; a re-run of it is the clean record.
+
 ## In-game checklist for testers
 
 The guided form of this list is `/fp steps mp check` (`pwsh Tools\deploy.ps1 -Probe`, then

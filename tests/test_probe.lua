@@ -20,11 +20,15 @@ WoW.reset()
 local FP = H.loadForeverProbe()
 local T = H.loadAddon()
 
--- A Mage who knows every buff, alone (showSolo is what the check turns on).
+-- A Mage who knows every buff, alone (showSolo is what the check turns on),
+-- who untracked Intellect: the check has to turn it on for its clicks and
+-- footer, and put it back (Codex, #78).
 MagelyDB = nil
 Magely_EnsureDefaults()
 MagelyDB.amplifyMode, MagelyDB.dampenMode, MagelyDB.showSolo = "detect", "instance", false
+MagelyDB.trackIntellect = false
 H.TeachSpells({ "INT_SINGLE", "INT_GROUP", "AMPLIFY", "DAMPEN" })
+WoW.DefineSpell(116, "Frostbolt")
 T.RefreshSpellData()
 WoW.SetUnit("player", { name = "Karuzo Elegia", guid = "P0", class = "MAGE" })
 WoW.dispatch("PLAYER_LOGIN")
@@ -72,11 +76,19 @@ H.check(P.restore(), "restore runs")
 H.eq(MagelyDB.amplifyMode, "detect", "amplifyMode is back")
 H.eq(MagelyDB.dampenMode, "instance", "dampenMode is back")
 H.eq(MagelyDB.showSolo, false, "showSolo is back")
+H.eq(MagelyDB.trackIntellect, false, "and Intellect untracked again, as it was")
 H.eq(P.db().saved, nil, "and nothing is left to restore")
 
 ------------------------------------------------------------
 -- The procedure, end to end
 ------------------------------------------------------------
+
+-- WoW.SetAura only adds (a nil duration is a permanent aura), so an aura
+-- comes off by taking it out of the unit's list.
+local function clearAura(unit, name)
+    local list = WoW.auras[unit] or {}
+    for i = #list, 1, -1 do if list[i].name == name then table.remove(list, i) end end
+end
 
 local function poll(times) for _ = 1, times or 1 do WoW.flushTimers(1); S.Poll() end end
 
@@ -93,6 +105,7 @@ S.Run()                                                        -- 4: set always
 poll()
 H.eq(at(), 6, "always: both rows show, so the wait completes")
 H.eq(MagelyDB.amplifyMode, "always", "(the mode was set)")
+H.eq(MagelyDB.trackIntellect, true, "and Intellect is tracked for the steps that need its row")
 
 -- detect: nobody has them, then Amplify, then Dampen.
 S.Run()                                                        -- 6: set detected
@@ -104,7 +117,7 @@ WoW.SetAura("player", "Amplify Magic", 600, 600, 1008)
 WoW.dispatch("UNIT_AURA", "player")
 poll(2)
 H.eq(at(), 9, "the Amplify row appears and the wait completes")
-WoW.SetAura("player", "Amplify Magic", nil)
+clearAura("player", "Amplify Magic")
 WoW.SetAura("player", "Dampen Magic", 600, 600, 604)
 WoW.dispatch("UNIT_AURA", "player")
 poll(2)
@@ -130,6 +143,9 @@ WoW.dispatch("UNIT_SPELLCAST_SUCCEEDED", "player", "g0", 1459)
 S.Run()                                                        -- 16: arm
 poll()
 H.eq(at(), 17, "it waits for the click's cast")
+WoW.dispatch("UNIT_SPELLCAST_SUCCEEDED", "player", "f1", 116)
+poll()
+H.eq(at(), 17, "a Frostbolt is not a click on Magely's window")
 WoW.dispatch("UNIT_SPELLCAST_SUCCEEDED", "player", "g1", 1459)
 poll()
 H.eq(at(), 18, "and goes on when it lands")
@@ -142,6 +158,9 @@ poll()
 H.eq(at(), 22, "in combat it waits for a cast")
 poll()
 H.eq(at(), 22, "the out-of-combat click before it doesn't count")
+WoW.dispatch("UNIT_SPELLCAST_SUCCEEDED", "player", "f2", 116)
+poll()
+H.eq(at(), 22, "nor does a Frostbolt at the mob")
 WoW.dispatch("UNIT_SPELLCAST_SUCCEEDED", "player", "g2", 1459)
 poll()
 H.eq(at(), 23, "a cast in combat completes it")
@@ -151,17 +170,55 @@ H.eq(at(), 24, "it waits for the end of combat")
 WoW.inCombat = false
 poll()
 H.eq(result(25).check, "PASS", "Brilliance known and Arcane Powder in the footer")
+-- The options step: the owner clicks through everything, as asked.
+Magely_SetConfig("lockFrame", true)
+Magely_SetConfig("frameAlpha", 0.5)
+Magely_SetConfig("trackPets", false)
+Magely_SetConfig("showClickHints", false)
+Magely_SetInstance("amplify", "The Deadmines", false)
+Magely_SetInstance("dampen", "Ragefire Chasm", true)
 S.Answer(true)
 H.eq(result(27).check, "PASS", "the settings are put back")
 H.eq(MagelyDB.amplifyMode, "detect", "amplifyMode is the owner's again")
 H.eq(MagelyDB.showSolo, false, "and showSolo")
+H.eq(MagelyDB.trackIntellect, false, "and Intellect untracked")
+H.eq(MagelyDB.lockFrame, false, "and what the options step changed: the lock")
+H.eq(MagelyDB.frameAlpha, 0.96, "the alpha")
+H.eq(MagelyDB.trackPets, true, "pets")
+H.eq(MagelyDB.showClickHints, true, "click hints")
+H.eq(MagelyDB.amplifyInstances["The Deadmines"], true, "an Amplify instance flag")
+H.eq(MagelyDB.dampenInstances["Ragefire Chasm"], false, "and a Dampen one")
 S.Stop()
+
+------------------------------------------------------------
+-- The row waits only observe: if Magely's aura refresh is broken, the
+-- detected row never appears and the wait times out (Codex, #78).
+------------------------------------------------------------
+
+clearAura("player", "Dampen Magic")
+WoW.dispatch("UNIT_AURA", "player")
+WoW.flushTimers(1)
+fp("steps mp check")
+S.Next() S.Run()
+S.Run() poll()                                                 -- always
+S.Run() poll(3)                                                -- detected, none; its rebuild done
+H.eq(at(), 8, "at the Amplify wait")
+local evt = T.eventFrame()
+evt:UnregisterEvent("UNIT_AURA")                               -- a Magely that misses the aura
+WoW.SetAura("player", "Amplify Magic", 600, 600, 1008)
+WoW.dispatch("UNIT_AURA", "player")
+for _ = 1, 125 do WoW.flushTimers(1); WoW.advance(1); S.Poll() end
+H.eq(result(8).status, "timeout", "with Magely's refresh broken, the Amplify wait times out instead of passing")
+evt:RegisterEvent("UNIT_AURA")
+clearAura("player", "Amplify Magic")
+S.Stop()
+H.check(P.restore(), "restore by hand")
 
 ------------------------------------------------------------
 -- A mode showing the wrong rows fails
 ------------------------------------------------------------
 
-WoW.SetAura("player", "Dampen Magic", nil)
+clearAura("player", "Dampen Magic")
 fp("steps mp check")
 S.Next()
 S.Run()

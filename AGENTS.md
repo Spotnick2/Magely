@@ -63,9 +63,11 @@ stated in the release notes.
 `docs/FOREVER-NOTES.md`: Arcane Intellect known and its clicks wired, at least 59:56 remaining
 after a cast (the total unmeasured), surnames in the popover. What Magely shares with Priestly - the engine, the window, the settings path, the combat
 rules - is taken as measured by Priestly. What is Mage-specific and not yet seen in play stays
-listed there as **unmeasured**: Amplify and Dampen (levels 18 and 12), their modes, instance mode
-in a dungeon, combat, raids. Record each as it is measured, and delete this section once the
-checklist there has been run.
+listed there as **unmeasured**. The release check's first full run (70959, 2026-11-18, recorded
+there) covered Amplify and Dampen in each mode outdoors, clicks in and out of combat and the
+options panel. Still unmeasured: instance mode inside a dungeon, the close surviving a zone-in,
+Brilliance and its reagent (level 56), raids. Record each as it is measured, and delete this
+section once the checklist there has been run.
 
 `H.NOT_YET_PORTED` in `tests/harness.lua` is empty. It stays, with the check in `test_bridge`, until
 this section is deleted. Update this section as slices land, and delete it when the port is done.
@@ -105,9 +107,11 @@ with a **secret** `spellID`, talents live in a traits config. Its code is in git
   after `..\ForeverProbe` (`$env:FOREVERPROBE`) by its own deploy.
 - `Tools/MagelyProbe/` — the **in-game release check**, a ForeverProbe module (`/fp mp`, procedure
   `/fp steps mp check`; see Validation). Not the cooldown pane's old probe (retired in #75): the
-  name came back with this job. It changes `amplifyMode`, `dampenMode`, `trackAmplify`,
-  `trackDampen` and `showSolo` through `Magely_SetConfig` so each mode can be seen, saves them
-  first and puts them back (`/fp mp restore` by hand). Read `References\Docs\PROBES.md` and
+  name came back with this job. It changes the modes, the three `track*` keys and `showSolo`
+  through `Magely_SetConfig` so each mode can be seen, and has the owner click through the
+  options panel, so it saves every key in `DEFAULTS` and both instance lists first and puts them
+  all back (`/fp mp restore` by hand). It only observes the window: a rebuild from the probe would
+  pass a check whose point is that Magely's own paths update it. Read `References\Docs\PROBES.md` and
   `ForeverProbe\docs\GUIDE.md` before changing it. Never shipped (`.pkgmeta` ignores `Tools`).
   ForeverProbe is private, so CI skips `tests/test_probe.lua` (`FOREVERPROBE_OPTIONAL=1`): run
   `tests\run.ps1` before a PR that touches the probe.
