@@ -88,8 +88,11 @@ Not answered yet, and why:
   or LibGlass r11 names was removed or changed; the changes are mail and secure transfer, title
   icons, transmog, game-rules presets, `PARTY_INVITE_REQUEST` and `PLAYER_LEVEL_UP` gaining a
   field, and `GroupBuffItem` gaining `displaySpellID` (only `C_CooldownViewer` returns it).
-- **In game**: Magely v1.1.0 ran for a Mage on 70959 - its load-check marker in the
-  SavedVariables recorded build 70959 on 2026-11-17. No checklist pass on this build is recorded.
+- **In game**: Magely v1.1.0 ran for a Mage on 70959 - its load-check marker in that character's
+  `MagelyDB` recorded build 70959 on 2026-11-17, and the marker is written only on the Mage path
+  (`IsMage()` gates the config's event handler). No buff was learned in that session
+  (`learnedDurations` is empty), so no cast was seen, and no checklist pass on this build is
+  recorded.
 - `GetBuildInfo()` on 70959 reports `Nov 13 2026` (ForeverProbe's log). The shared test stub at
   LibGroupBuffs r34 still models 70338, which `tests/test_stub.lua` pins; that moves with the
   library, not with this constant.
