@@ -26,9 +26,12 @@ Magely = Magely or {}
 -- lib:New arrived, so nothing older can serve this file; r27 is where a
 -- deferred close says whether the player asked for it (Magely.lua words the
 -- two apart), r28 where lib:Refusal says why New refused, and r34 where
--- SpellReport counts names of unknown origin apart (/magely help). Keep this
--- equal to the MINOR .pkgmeta pins; tests/test_manifest.lua checks that.
-local NEEDS_MINOR = 34
+-- SpellReport counts names of unknown origin apart (/magely help). r35 moved
+-- the shared test stub onto WowTestKit (#61) and r36 draws the window's text
+-- in LibGlass's per-language font; neither is something Magely calls, but the
+-- rule holds: keep this equal to the MINOR .pkgmeta pins; tests/test_manifest.lua
+-- checks that.
+local NEEDS_MINOR = 36
 
 -- Magely's own record of the events this client rejected, for
 -- `/dump Magely.eventFailures`. The library also keeps it, as

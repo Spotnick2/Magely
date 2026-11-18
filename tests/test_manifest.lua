@@ -23,6 +23,12 @@ end
 
 local toc = lines("Magely.toc")
 
+-- What every addon TOC must get right (WowTestKit): the interface, the
+-- packager's version token, each listed .lua file exists, nothing listed
+-- twice. The library XML lines are not .lua, so their existence is checked
+-- by tests/libfiles.lua and the sections below.
+Kit.checkToc("Magely.toc", { interface = 16001 })
+
 local function directive(name)
     -- Escape the name: "X-Curse-Project-ID" contains "-", which is a Lua
     -- pattern quantifier, so an unescaped match silently finds nothing.

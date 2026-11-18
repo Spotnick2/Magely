@@ -1,7 +1,8 @@
 # Magely tests
 
 Unit tests that run under **Lua 5.1** (the interpreter WoW uses) with no game client. Plain
-scripts, no external dependencies. Same shape as Priestly's.
+scripts on **WowTestKit** (`C:\Projects\WoW\WowTestKit`, Spotnick2/WowTestKit; its README is the
+reference), at the commit and client build `tests/kit.pin` names. Same shape as Priestly's.
 
 ## Running
 
@@ -11,16 +12,26 @@ All tests:
 pwsh tests/run.ps1
 ```
 
-A single test, from the repo root so the relative paths resolve:
+`run.ps1` puts the pinned kit in `%LOCALAPPDATA%\WowTestKit\<sha>` (fetched once, then offline)
+and hands off to the kit's runner; `-KitDev` uses the `..\WowTestKit` working copy instead. A
+single test, from the repo root so the relative paths resolve, once `run.ps1` has fetched the kit:
 
 ```powershell
 & 'C:\Program Files (x86)\Lua\5.1\lua.exe' tests\test_bridge.lua
 ```
 
 Use the Lua **5.1** interpreter, not a newer Lua that may be first on `PATH`. `run.ps1` defaults to
-`C:\Program Files (x86)\Lua\5.1\lua.exe` (override with `-Lua <path>`) and runs `luac -p` over the
-files `Magely.toc` loads and the library first. That check is required: `run.ps1` fails if it cannot
-find `luac.exe` next to `lua.exe` (override with `-Luac <path>`).
+`C:\Program Files (x86)\Lua\5.1\lua.exe` (override with `-Lua <path>`). The kit's runner runs
+`luac -p` over the files `Magely.toc` loads, the library's and the probe's, with the `luac.exe`
+beside `lua.exe`. That check is required: the kit's runner alone would only warn
+(`luac -p SKIPPED`), so `run.ps1` fails first if there is no `luac.exe` there.
+
+Each file ends with `<name>: N passed, M failed` (the kit's `done()`, which also fails on a stray
+`|` in any printed line). **The kit's `print` goes to `WoW.chat`, not the terminal.**
+
+`tests/kit.lua`, `kit.ps1` and `fetch_kit.sh` are the kit's bootstrap copies: never edit them
+here. Magely reaches the kit through LibGroupBuffs' shared stub (r35 and later), which starts with
+`dofile("tests/kit.lua")`, so `tests/kit.pin` and the `.pkgmeta` LibGroupBuffs pin move together.
 
 **The tests need LibGroupBuffs-1.0 and LibGlass-1.0 checked out next to this
 repository** (`../LibGroupBuffs`, `../LibGlass`), because Magely loads both
@@ -34,7 +45,7 @@ fall back to, on purpose; a missing checkout fails loudly.
 To test exactly what a release ships, clone each library at its pin:
 `bash tests/fetch_external.sh Libs/LibGlass-1.0 <dir>` (and
 `Libs/LibGroupBuffs-1.0`), then point the variables at those clones. CI does
-exactly that.
+exactly that, and fetches the kit at its pin with `tests/fetch_kit.sh`.
 
 ## How it works
 
@@ -64,7 +75,7 @@ exactly that.
 
 | File | What it pins down |
 |---|---|
-| `test_manifest.lua` | The TOC and `.pkgmeta`: interface 16001, per-character `MagelyDB` plus the account-wide `MagelySVCheck`, load order (LibGlass, LibGroupBuffs, then Magely's three files), both externals read by path and pinned, `NEEDS_MINOR` equal to the pinned MINOR and at least r26, `.gitignore`, and each library's dev files ignored from here. |
+| `test_manifest.lua` | The TOC and `.pkgmeta`: WowTestKit's `Kit.checkToc` (interface, version token, each listed `.lua` exists, nothing listed twice), interface 16001, per-character `MagelyDB` plus the account-wide `MagelySVCheck`, load order (LibGlass, LibGroupBuffs, then Magely's three files), both externals read by path and pinned, `NEEDS_MINOR` equal to the pinned MINOR and at least r26, `.gitignore`, and each library's dev files ignored from here. |
 | `test_bridge.lua` | Magely on top of LibGroupBuffs-1.0: `Magely.GB` is the instance `lib:New` made, `Magely.API` the library's own table, and the r25 copies (`.Settings`, `.Engine`, `.UI`, `.Visibility`) are gone. Rejected events and the settings checks reach the player through the one reporter (recorded even with no chat frame; the label coloured by shape). Magely refuses to start - saying why in chat, and never `New`'s own words - when the library is missing, has no `New`, did not finish loading, is below the floor, or LibGlass is missing or half-loaded; worded by `lib:Refusal`'s code (r28); a crash or host mistake inside `New`, a code this build does not know, or a `Refusal` that throws reads as a failed load, and a copy with no `Refusal` is read from the libraries' markers. Run against the real library put into each state, plus another addon's r25 or r27 loaded first and upgraded. Also scans every ported file: each `API.*` it uses exists, no library function is copied into a local, and events go only through `Magely.RegisterEvents`. |
 | `test_availability.lua` | Magely's DEFS on the engine: ID-based with no TBC flags, which buffs get a row for what the mage knows, what each click casts (Brilliance when known, Amplify and Dampen single on both buttons), both optional rows at once, the toggles and each buff's own mode layered over availability, the aura names published for detect mode, localized names. |
 | `test_clicks.lua` | The secure attributes after a rebuild: Intellect vs Brilliance, Amplify and Dampen each on both buttons and aiming at whoever lacks its own buff, targets following who is missing it (a Brilliance counts), clearing rather than casting on a corpse, PreClick re-aiming, popover rows, both mouse edges, no `typerelease`, and hints that say what a click does. |
@@ -77,6 +88,7 @@ exactly that.
 | `test_options.lua` | Builds the options panel and clicks everything in it, with spies in place of the hooks `Magely.lua` defines: each checkbox, both mode radio groups independently, the popover side, the slider, both tabs, every instance's Amp and Damp box, Reset Defaults and the row tooltips; zoning re-checks the instance and asks for a rebuild; nothing needs the host loaded. |
 | `test_probe.lua` | `Tools/MagelyProbe`, a ForeverProbe module (`/fp mp`; needs `../ForeverProbe` or `FOREVERPROBE`, and skips in CI, which sets `FOREVERPROBE_OPTIONAL=1`, since ForeverProbe is private): its log is bound to the saved table the client hands back, it has no slash command or global of its own, nothing it says reaches chat, and the `casts` procedure passes only on a party cast. It records every answer, including "missing": an absent API, a refused registration, a secret spell ID (counted as SECRET, or as THREW when `issecretvalue` is absent - never as readable), an unreadable unit token, a pane test whose control is refused, a whisper to a two-word name, and talent queries that hit, miss or throw. A probe that silently reports nothing looks like a measurement. |
 | `test_libfiles.lua` | Both libraries' file lists, read from their XML: LibGroupBuffs is one runtime file with no textures of its own, every texture it draws is in LibGlass's `Media/`, LibGlass ships its XML, LICENSE and textures; and `libfiles.lua` does not mistake a test for its own script mode. |
+| `test_methods.lua` | WowTestKit's `Kit.checkMethods`: after an exercise of the window (every row, the popover and its hover), combat, every slash command and every control of the options panel, each widget method the addon and its libraries called exists on that widget type in the pinned build. The exercise records 119 today, and the floor is 110 so it cannot quietly shrink. |
 | `test_stub.lua` | The stub entries Magely changed from the library's copy (`strsplit` keeping empty fields) keep the client's shape. |
 
 ## The stub is an allowlist, and it must model absences

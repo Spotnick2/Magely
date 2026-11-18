@@ -5,6 +5,13 @@
     files against tests/wow_stubs.lua. WoW uses Lua 5.1, so the tests do too -
     not the newer Lua that may be first on PATH.
 
+    The scaffolding is WowTestKit, at the commit and client build
+    tests/kit.pin names. tests/kit.ps1 puts that commit in
+    %LOCALAPPDATA%\WowTestKit\<sha> (or, with -KitDev, uses the ..\WowTestKit
+    working copy), and this script hands off to the kit's runner, which
+    syntax-checks the files (with the luac beside -Lua, which must exist) and
+    runs every tests/test_*.lua.
+
     Magely embeds two libraries, loaded before its own files: LibGlass-1.0
     (the glass material) and LibGroupBuffs-1.0 (the compat layer, engine and
     window, which draws with LibGlass). The tests read each from a checkout
@@ -16,21 +23,31 @@
     Usage:
         pwsh tests/run.ps1
         pwsh tests/run.ps1 -Lua "C:\path\to\lua5.1.exe"
-        pwsh tests/run.ps1 -Luac "C:\path\to\luac5.1.exe"
         pwsh tests/run.ps1 -Library "D:\src\LibGroupBuffs" -LibGlass "D:\src\LibGlass"
+        pwsh tests/run.ps1 -KitDev       # against ..\WowTestKit, not the pin
 #>
 
 param(
     [string]$Lua = "C:\Program Files (x86)\Lua\5.1\lua.exe",
-    [string]$Luac = "",
     [string]$Library = "",
-    [string]$LibGlass = ""
+    [string]$LibGlass = "",
+    [switch]$KitDev
 )
 
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Lua)) {
     Write-Error "Lua 5.1 interpreter not found at: $Lua  (pass -Lua <path>)"
+    exit 1
+}
+
+# The syntax check is required here, as it was before the kit: the kit's
+# runner only warns ("luac -p SKIPPED") when there is no luac.exe beside
+# lua.exe, and a skipped check that still ends green is how it once looked
+# green while never running.
+$luac = Join-Path (Split-Path -Parent $Lua) "luac.exe"
+if (-not (Test-Path $luac)) {
+    Write-Error "luac (Lua 5.1) not found at: $luac - the syntax check is required; install it beside $Lua"
     exit 1
 }
 
@@ -76,55 +93,19 @@ function Show-Pin {
 Show-Pin -Name "LibGlass" -Path "Libs/LibGlass-1.0" -Root $LibGlass
 Show-Pin -Name "LibGroupBuffs" -Path "Libs/LibGroupBuffs-1.0" -Root $Library
 
-# Run from the repo root so the tests can dofile('tests/...') and
-# loadfile('Magely.lua') with paths relative to the project.
-Push-Location $RepoRoot
-try {
-    $failed = 0
+# The kit's runner syntax-checks the TOC's Lua files; these go with them. A
+# parse error in LibGroupBuffs would show up as a confusing load failure
+# inside every test. Its files come from tests/libfiles.lua, the one reader of
+# its XML that the harness, deploy.ps1 and CI use too, so a new file cannot be
+# left unchecked. LibGlass is checked in its own repository, and loading it is
+# the first thing every test does. The probe is checked here because nothing
+# the TOC lists loads it.
+$libFiles = & $Lua (Join-Path $PSScriptRoot "libfiles.lua") $Library load $LibGlass
+if ($LASTEXITCODE -ne 0) { Write-Host "LibGroupBuffs file list FAILED" -ForegroundColor Red; exit 1 }
+$extra = @($libFiles | ForEach-Object { Join-Path $Library $_ })
+$extra += @(Get-ChildItem (Join-Path $RepoRoot "Tools") -Recurse -Filter "*.lua" | ForEach-Object { $_.FullName })
 
-    # Syntax-check Magely's files and LibGroupBuffs': a parse error there
-    # would show up as a confusing load failure inside every test. LibGlass is
-    # checked in its own repository, and loading it is the first thing every
-    # test does. Skipping this quietly was how the syntax check could look
-    # green while never running: say so, loudly, rather than printing nothing.
-    $luac = if ($Luac) { $Luac } else { Join-Path (Split-Path -Parent $Lua) "luac.exe" }
-    if (-not (Test-Path $luac)) {
-        Write-Error "luac (Lua 5.1) not found at: $luac  (pass -Luac <path>)"
-        exit 1
-    }
-    else {
-        # Magely's files come from the TOC and the library's from
-        # tests/libfiles.lua, the one reader of its XML that the harness,
-        # deploy.ps1 and CI use too. Neither list is written out here, so a new
-        # file cannot be left unchecked.
-        $tocFiles = Get-Content (Join-Path $RepoRoot "Magely.toc") |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ -notmatch "^#" -and $_ -match "[.]lua$" }
-        if (-not $tocFiles) { Write-Host "Magely.toc lists no Lua files" -ForegroundColor Red; exit 1 }
-        $libFiles = & $Lua (Join-Path $PSScriptRoot "libfiles.lua") $Library load $LibGlass
-        if ($LASTEXITCODE -ne 0) { Write-Host "LibGroupBuffs file list FAILED" -ForegroundColor Red; exit 1 }
-        $libFiles = $libFiles | ForEach-Object { Join-Path $Library $_ }
-        & $luac -p @tocFiles @libFiles
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "luac -p FAILED" -ForegroundColor Red
-            exit 1
-        }
-        Remove-Item -LiteralPath (Join-Path $RepoRoot "luac.out") -ErrorAction SilentlyContinue
-        Write-Host "luac -p: ok ($($tocFiles.Count) addon + $($libFiles.Count) library files)" -ForegroundColor DarkGray
-    }
-
-    Get-ChildItem (Join-Path $PSScriptRoot "test_*.lua") | Sort-Object Name | ForEach-Object {
-        Write-Host "-- $($_.Name) " -NoNewline -ForegroundColor Cyan
-        & $Lua $_.FullName
-        if ($LASTEXITCODE -ne 0) { $failed++ }
-    }
-
-    if ($failed -gt 0) {
-        Write-Host "$failed test file(s) FAILED" -ForegroundColor Red
-        exit 1
-    }
-    Write-Host "All test files passed." -ForegroundColor Green
-}
-finally {
-    Pop-Location
-}
+. (Join-Path $PSScriptRoot "kit.ps1")
+$kit = Get-WowTestKit -RepoRoot $RepoRoot -KitDev:$KitDev
+& (Join-Path $kit "scripts\run.ps1") -RepoRoot $RepoRoot -Toc "Magely.toc" -Extra $extra -Lua $Lua
+exit $LASTEXITCODE

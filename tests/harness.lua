@@ -7,22 +7,19 @@
 --     H.done("test_thing")
 --
 -- Run from the repo root so the relative paths resolve.
+--
+-- The assertions are WowTestKit's (check / eq / done, globals the kit
+-- defines; tests/kit.pin pins it), loaded by the shared stub's
+-- dofile("tests/kit.lua"). H.check / H.eq / H.done stay as their names here,
+-- so no test changes. The kit's print goes to WoW.chat, not the terminal,
+-- which is why nothing here prints: done() writes the result line itself.
 ------------------------------------------------------------
 
-local H = { run = 0, failures = 0 }
+local H = {}
 
-function H.check(cond, msg)
-    H.run = H.run + 1
-    if not cond then
-        H.failures = H.failures + 1
-        print("  FAIL: " .. (msg or "assertion failed"))
-    end
-end
+function H.check(cond, msg) check(cond, msg or "assertion failed") end
 
-function H.eq(a, b, msg)
-    H.check(a == b, (msg or "values differ") ..
-        "  (expected " .. tostring(b) .. ", got " .. tostring(a) .. ")")
-end
+function H.eq(a, b, msg) eq(a, b, msg or "values differ") end
 
 -- A whole file as text with CRLF normalised, or nil if it does not exist.
 function H.readFile(path)
@@ -194,12 +191,9 @@ function H.secrecy(on)
     WoW.inCombat = on and true or false
 end
 
-function H.done(name)
-    if H.failures > 0 then
-        print(string.format("%s: %d/%d FAILED", name, H.failures, H.run))
-        os.exit(1)
-    end
-    print(string.format("%s: %d tests passed", name, H.run))
-end
+-- "<name>: N passed, M failed", after the kit's own two checks: no stray
+-- "|" in any printed line, and no blocked operation on a secret swallowed by
+-- a pcall. Exits with the result.
+function H.done(name) done(name) end
 
 return H

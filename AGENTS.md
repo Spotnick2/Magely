@@ -84,7 +84,7 @@ click to whisper a request. None of its data sources work as written on this cli
   is a talent. Neither exists at the current level cap of 20, so nothing can be tested in game.
 
 It comes back as its own slice, on the library rather than beside it. The seam it needed is
-there: **r27** (LibGroupBuffs #24; r34 is pinned) adds `onTick(ui, elapsed)` on the window's
+there: **r27** (LibGroupBuffs #24; r36 is pinned) adds `onTick(ui, elapsed)` on the window's
 half-second tick, in and out of combat, and `onAppearance(ui)`, beside `onLayout` /
 `onVisibility`. The pane's rules are in the library's `AGENTS.md` (companion panes) and its
 `tests/test_companion.lua` builds a Magely-shaped one: non-secure, parented to UIParent and
@@ -465,8 +465,27 @@ Offline, on every change:
 
 ```powershell
 pwsh tests\run.ps1        # luac -p + all unit tests; needs ../LibGroupBuffs, ../LibGlass and Lua 5.1's luac
+pwsh tests\run.ps1 -KitDev   # the same against the ..\WowTestKit working copy, not the pin
 bash tests/fetch_external.sh Libs/LibGlass-1.0 <dir>   # clone a library at its .pkgmeta pin (what CI does)
 ```
+
+The test scaffolding is WowTestKit (`C:\Projects\WoW\WowTestKit`; its README is the reference)
+at the commit and client build `tests\kit.pin` names. `tests\run.ps1` puts that commit in
+`%LOCALAPPDATA%\WowTestKit\<sha>` and hands off to the kit's runner; CI fetches it with
+`tests\fetch_kit.sh`. `tests\kit.lua`, `kit.ps1` and `fetch_kit.sh` are the kit's bootstrap
+copies: never edit them here. A kit need is an issue on the kit, worked around in
+`tests\wow_stubs.lua` with a `-- WowTestKit #N:` comment meanwhile. `tests\run.ps1 -KitDev`
+runs against the `..\WowTestKit` working copy instead of the pin.
+
+Magely reaches the kit through **LibGroupBuffs' shared stub** (r35 and later): it starts with
+`dofile("tests/kit.lua")`, which run from this repository loads *this* repository's `kit.lua` and
+`kit.pin`. So `kit.pin` and the `.pkgmeta` LibGroupBuffs pin move together: with a `kit.pin` and an
+older library pin, CI would get a stub that knows nothing of the kit. The assertions are the kit's
+global `check` / `eq` / `done`, which `tests/harness.lua` keeps as `H.check` / `H.eq` / `H.done`.
+**The kit's `print` goes to `WoW.chat`, not the terminal**, and `done()` also fails on a stray `|`
+in any printed line. `tests/test_methods.lua` is `Kit.checkMethods`: every widget method the
+exercise made the addon (and its libraries) call must exist on that widget type in the pinned
+build. `kit.pin`'s `build=` is `MEASURED_ON_BUILD`; bump them together.
 
 The first lines name each library checkout and revision the tests ran against, and warn when one
 is not at its `.pkgmeta` pin. They differ while working on a library; they must match before a
