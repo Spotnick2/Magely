@@ -1,5 +1,11 @@
 # Magely Changelog
 
+## Unreleased
+
+### Changed
+- **Checked on game build 1.60.1.70959**, the current WoW: Forever client. Nothing Magely relies on
+  changed.
+
 ## v1.1.0 - 2026-11-04
 
 ### Added

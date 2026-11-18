@@ -31,10 +31,10 @@ local BROKEN = "69977"   -- a test fixture: "a build older than the one running"
 local FIXED = "70123"    -- any build other than the two above
 
 -- Pinned independently of the source: the checks below take their build from
--- it, so a stale constant would pass them all. 70338: the API dump compared
--- with 70205's and the owner's test in game (2026-10-11). Bump it after
+-- it, so a stale constant would pass them all. 70959: the API dump compared
+-- with 70338's and v1.1.0 running on 70959 (2026-11-18, #67). Bump it after
 -- re-measuring, never to make a test pass.
-H.eq(MEASURED, "70338", "MEASURED_ON_BUILD is the build the notes were last checked on")
+H.eq(MEASURED, "70959", "MEASURED_ON_BUILD is the build the notes were last checked on")
 -- There is no second constant since LibGroupBuffs r14: the library decides
 -- whether settings came back from the marker's own recorded build, so no host
 -- build number is left to go stale - or to be bumped into announcing a fix
