@@ -99,10 +99,11 @@ What `Tools/MagelyProbe` has measured so far (build 70009; `docs/FOREVER-NOTES.m
 - **Other players' casts: not established.** `UNIT_SPELLCAST_SUCCEEDED` registers; one ~8-second
   run while the owner's second account cast saw no event for any unit, but that account being in
   the party was not confirmed. A controlled repeat decides it. If others' casts are not delivered,
-  the only source left is each provider announcing its **own** casts by addon message.
+  the only source left is each provider announcing its **own** casts by addon message. The
+  controlled repeat is the procedure `/fp steps mp casts`.
 - **Talents cannot be read** through `C_SpecializationInfo.GetTalentInfo` in any query shape, for
   yourself or an inspected target; inspection itself works. Whether Retail's traits system holds
-  them is the probe's next question.
+  them is the probe's next question (`/fp steps mp talents`).
 
 ## Repository Layout
 
@@ -126,11 +127,15 @@ What `Tools/MagelyProbe` has measured so far (build 70009; `docs/FOREVER-NOTES.m
 - `tests/` — Lua 5.1 unit tests, no game client. See `tests/README.md`.
 - `Tools/deploy.ps1` — deploy to the local Forever AddOns folder, both libraries included (it runs
   LibGlass's own deploy first). `-Probe` /
-  `-ProbeOnly` deploy `Tools/MagelyProbe` too / alone.
-- `Tools/MagelyProbe/` — the throwaway probe for the cooldown pane's questions (`/mprobe`); see
-  `docs/FOREVER-NOTES.md`. Never shipped (`.pkgmeta` ignores `Tools`). It reads every client global
-  with `rawget`, so a missing API is recorded rather than fatal, and `tests/test_probe.lua` holds it
-  to that.
+  `-ProbeOnly` deploy `Tools/MagelyProbe` too / alone, after `..\ForeverProbe` (`$env:FOREVERPROBE`)
+  by its own deploy.
+- `Tools/MagelyProbe/` — the throwaway probe for the cooldown pane's questions, a **ForeverProbe
+  module** (`/fp mp`, procedures `/fp steps mp casts | talents | pane`); see `docs/FOREVER-NOTES.md`
+  and read `C:\Projects\WoW\References\Docs\PROBES.md` and `ForeverProbe\docs\GUIDE.md` before
+  changing it. Never shipped (`.pkgmeta` ignores `Tools`). It reads every client global with
+  `rawget`, so a missing API is recorded rather than fatal, and `tests/test_probe.lua` holds it to
+  that. ForeverProbe is private, so CI skips that test (`FOREVERPROBE_OPTIONAL=1`) and it runs
+  locally only: run `tests\run.ps1` before a PR that touches the probe.
 - `.github/workflows/package-check.yml` — tests against the pinned libraries, a dry-run package,
   and a check that the zip is exactly the addon plus both libraries at their pins. On a tag it then
   publishes that zip as a GitHub Release and on Wago Addons (see Releasing).
