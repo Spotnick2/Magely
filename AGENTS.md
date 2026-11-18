@@ -63,9 +63,11 @@ stated in the release notes.
 `docs/FOREVER-NOTES.md`: Arcane Intellect known and its clicks wired, at least 59:56 remaining
 after a cast (the total unmeasured), surnames in the popover. What Magely shares with Priestly - the engine, the window, the settings path, the combat
 rules - is taken as measured by Priestly. What is Mage-specific and not yet seen in play stays
-listed there as **unmeasured**: Amplify and Dampen (levels 18 and 12), their modes, instance mode
-in a dungeon, combat, raids. Record each as it is measured, and delete this section once the
-checklist there has been run.
+listed there as **unmeasured**. The release check's first full run (70959, 2026-11-18, recorded
+there) covered Amplify and Dampen in each mode outdoors, clicks in and out of combat and the
+options panel. Still unmeasured: instance mode inside a dungeon, the close surviving a zone-in,
+Brilliance and its reagent (level 56), raids. Record each as it is measured, and delete this
+section once the checklist there has been run.
 
 `H.NOT_YET_PORTED` in `tests/harness.lua` is empty. It stays, with the check in `test_bridge`, until
 this section is deleted. Update this section as slices land, and delete it when the port is done.
@@ -101,8 +103,18 @@ with a **secret** `spellID`, talents live in a traits config. Its code is in git
 - `docs/FOREVER-NOTES.md` — what is measured and what is not, and the in-game checklist.
 - `tests/` — Lua 5.1 unit tests, no game client. See `tests/README.md`.
 - `Tools/deploy.ps1` — deploy to the local Forever AddOns folder, both libraries included (it runs
-  LibGlass's own deploy first). Magely has no probe: a new one would be a ForeverProbe module
-  (`C:\Projects\WoW\References\Docs\PROBES.md`).
+  LibGlass's own deploy first). `-Probe` / `-ProbeOnly` deploy `Tools/MagelyProbe` too / alone,
+  after `..\ForeverProbe` (`$env:FOREVERPROBE`) by its own deploy.
+- `Tools/MagelyProbe/` — the **in-game release check**, a ForeverProbe module (`/fp mp`, procedure
+  `/fp steps mp check`; see Validation). Not the cooldown pane's old probe (retired in #75): the
+  name came back with this job. It changes the modes, the three `track*` keys and `showSolo`
+  through `Magely_SetConfig` so each mode can be seen, and has the owner click through the
+  options panel, so it saves every key in `DEFAULTS` and both instance lists first and puts them
+  all back (`/fp mp restore` by hand). It only observes the window: a rebuild from the probe would
+  pass a check whose point is that Magely's own paths update it. Read `References\Docs\PROBES.md` and
+  `ForeverProbe\docs\GUIDE.md` before changing it. Never shipped (`.pkgmeta` ignores `Tools`).
+  ForeverProbe is private, so CI skips `tests/test_probe.lua` (`FOREVERPROBE_OPTIONAL=1`): run
+  `tests\run.ps1` before a PR that touches the probe.
 - `.github/workflows/package-check.yml` — tests against the pinned libraries, a dry-run package,
   and a check that the zip is exactly the addon plus both libraries at their pins. On a tag it then
   publishes that zip as a GitHub Release and on Wago Addons (see Releasing).
@@ -474,15 +486,21 @@ on a widget method, execute it and assert what it produced.
 
 In game — **nothing ships without this pass**. The one exception so far is v1.0.0, released
 before anyone on the port had a Mage (see Port status). There is one now, so the next release needs
-the pass. The checklist is in `docs/FOREVER-NOTES.md`:
+the pass. It is a guided procedure, `/fp steps mp check`, on a Mage of level 18 or higher:
 
 ```powershell
-pwsh Tools\deploy.ps1
+pwsh Tools\deploy.ps1 -Probe
 ```
 ```
 /console scriptErrors 1
 /reload
+/fp steps mp check
 ```
+
+After the owner's `/reload`, read the results yourself: `ForeverProbe.lua`
+(`steps.records["MagelyProbe/check"]`), `MagelyProbe.lua` (its log) and `!Bugsy.lua` for Lua errors
+(`problems[].lastSession` against `BugsyDB.session`), then record them in `docs/FOREVER-NOTES.md`.
+What the procedure covers is the list below; `docs/FOREVER-NOTES.md` keeps the checklist too.
 
 - AddOn list: enabled **and not flagged out of date**.
 - `/magely help | config | show | hide | reset | pos`; drag the frame.
