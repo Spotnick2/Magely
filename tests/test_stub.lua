@@ -26,7 +26,7 @@ local x, y, z = strsplit(",;", "1;2,3")
 H.eq(x .. y .. z, "123", "every character of the separator splits")
 
 ------------------------------------------------------------
--- The shared stub (r35, on WowTestKit) still models build 70338 for
+-- The shared stub (r35 and later, on WowTestKit) still models build 70338 for
 -- GetBuildInfo; tests/kit.pin's build only picks the API lists the kit
 -- checks against. This does not claim a runtime measurement.
 ------------------------------------------------------------

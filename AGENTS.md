@@ -84,7 +84,7 @@ click to whisper a request. None of its data sources work as written on this cli
   is a talent. Neither exists at the current level cap of 20, so nothing can be tested in game.
 
 It comes back as its own slice, on the library rather than beside it. The seam it needed is
-there: **r27** (LibGroupBuffs #24; r35 is pinned) adds `onTick(ui, elapsed)` on the window's
+there: **r27** (LibGroupBuffs #24; r36 is pinned) adds `onTick(ui, elapsed)` on the window's
 half-second tick, in and out of combat, and `onAppearance(ui)`, beside `onLayout` /
 `onVisibility`. The pane's rules are in the library's `AGENTS.md` (companion panes) and its
 `tests/test_companion.lua` builds a Magely-shaped one: non-secure, parented to UIParent and

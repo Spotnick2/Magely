@@ -5,11 +5,11 @@
 ### Changed
 - **Checked on game build 1.60.1.70959**, the current WoW: Forever client. Nothing Magely relies on
   changed.
-- Updated the embedded LibGlass library to r13 (was r11). Nothing changes on screen: r12 makes
-  LibGlass's fonts follow the client's language and r13 adds a button skin, and Magely's window
-  uses neither.
-- Updated the embedded LibGroupBuffs library to r35. Nothing changes in game: r35 only moves the
-  library's tests onto a shared test kit.
+- **The window's text follows your client's language.** On a Korean or Chinese client, names
+  and labels in the buff window used to draw as empty boxes; they now use the client's own font.
+  English and other Latin clients, and Russian, look exactly as before. (A Korean or Chinese
+  name on an English client still shows boxes: the English client has no font for it.)
+- Updated the embedded libraries to LibGroupBuffs r36 (was r34) and LibGlass r13 (was r11).
 
 ## v1.1.0 - 2026-11-04
 
