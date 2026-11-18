@@ -23,29 +23,19 @@
         pwsh Tools/deploy.ps1
         pwsh Tools/deploy.ps1 -AddOnsPath "D:\...\_forever_\Interface\AddOns"
         pwsh Tools/deploy.ps1 -Library "D:\src\LibGroupBuffs" -LibGlass "D:\src\LibGlass"
-        pwsh Tools/deploy.ps1 -Probe         # addon + ForeverProbe + MagelyProbe
-        pwsh Tools/deploy.ps1 -ProbeOnly     # just ForeverProbe + MagelyProbe (runs on any class)
-
-    MagelyProbe is a ForeverProbe module (## Dependencies: ForeverProbe), so
-    -Probe and -ProbeOnly deploy the ForeverProbe checkout first
-    ($env:FOREVERPROBE, else ..\ForeverProbe) by its own Tools\deploy.ps1, and
-    stop if it refuses.
 #>
 
 param(
     [string]$AddOnsPath = "C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns",
     [string]$Library = "",
     [string]$LibGlass = "",
-    [string]$Lua = "C:\Program Files (x86)\Lua\5.1\lua.exe",
-    [switch]$Probe,
-    [switch]$ProbeOnly
+    [string]$Lua = "C:\Program Files (x86)\Lua\5.1\lua.exe"
 )
 
 $ErrorActionPreference = "Stop"
 
 # Repo root = parent of this script's folder.
 $RepoRoot = Split-Path -Parent $PSScriptRoot
-$ForeverProbe = if ($env:FOREVERPROBE) { $env:FOREVERPROBE } else { Join-Path (Split-Path -Parent $RepoRoot) "ForeverProbe" }
 
 if (-not (Test-Path $AddOnsPath)) {
     Write-Error "AddOns path not found: $AddOnsPath"
@@ -163,34 +153,7 @@ function Deploy-Magely {
     Write-Host "  Libs\LibGroupBuffs-1.0  ($($libFiles.Count) files from $libRoot @ $revision)"
 }
 
-# The throwaway probe for the cooldown pane's questions (docs/FOREVER-NOTES.md).
-# Its own addon folder, so it loads on any character, Mage or not.
-function Deploy-Probe {
-    $src = Join-Path $RepoRoot "Tools\MagelyProbe"
-    if (-not (Test-Path $src)) {
-        Write-Host "No Tools\MagelyProbe - skipping" -ForegroundColor DarkYellow
-        return
-    }
-    # The host first: MagelyProbe has ## Dependencies: ForeverProbe, so without
-    # it the client would leave the probe disabled.
-    if (-not (Test-Path -LiteralPath (Join-Path $ForeverProbe "Tools\deploy.ps1"))) {
-        Write-Error "ForeverProbe checkout not found at $ForeverProbe (clone github.com/Spotnick2/ForeverProbe there, or set `$env:FOREVERPROBE)"
-        exit 1
-    }
-    & pwsh -NoProfile -File (Join-Path $ForeverProbe "Tools\deploy.ps1") -AddOnsPath $AddOnsPath
-    if ($LASTEXITCODE -ne 0) { Write-Error "ForeverProbe deploy refused; MagelyProbe was not touched"; exit 1 }
-
-    $dest = Join-Path $AddOnsPath "MagelyProbe"
-    Write-Host "Deploying MagelyProbe -> $dest" -ForegroundColor Cyan
-    if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest | Out-Null }
-    Get-ChildItem -LiteralPath $src -File | ForEach-Object {
-        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $dest $_.Name) -Force
-        Write-Host "  $($_.Name)"
-    }
-}
-
-if (-not $ProbeOnly) { Deploy-Magely }
-if ($Probe -or $ProbeOnly) { Deploy-Probe }
+Deploy-Magely
 
 Write-Host ""
 Write-Host "Done. In game:  /console scriptErrors 1  then  /reload" -ForegroundColor Green

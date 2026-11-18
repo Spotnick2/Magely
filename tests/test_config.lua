@@ -35,7 +35,7 @@ H.eq(MagelyDB.pos, nil, "nor is its position: nil means 'never placed'")
 H.eq(TC.DEFAULTS.svLoadCheck, nil, "and the load check's marker is never a default")
 for _, key in ipairs({ "cooldownPane", "trackInnervate", "innervateDebug", "trackPowerInfusion",
                        "cooldownSpamProtect" }) do
-    H.eq(TC.DEFAULTS[key], nil, key .. " is gone with the cooldown pane, until it returns")
+    H.eq(TC.DEFAULTS[key], nil, key .. " is gone with the cooldown pane, which is Buffy's now (#75)")
 end
 
 -- The user's own settings survive a second run.

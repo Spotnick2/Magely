@@ -52,7 +52,8 @@ The port lands in slices, one issue and PR each:
 3. **Host** — `Magely.lua` becomes DEFS + engine + window + spec look + Arcane Powder footer +
    events; the hand-built TBC window, and the cooldown pane with it, is deleted, not ported.
 4. **v1.0.0**, handed to testers for the in-game pass (below).
-5. **The cooldown pane**, after v1.0 (see below).
+
+The cooldown pane is not a slice any more: it is being built in Buffy (below).
 
 Slices 1 to 4 are done and **v1.0.0 is the first Forever release**. It shipped before anyone on
 the port had a Mage - a deliberate exception to the rule under Validation, made by the owner and
@@ -69,43 +70,15 @@ checklist there has been run.
 `H.NOT_YET_PORTED` in `tests/harness.lua` is empty. It stays, with the check in `test_bridge`, until
 this section is deleted. Update this section as slices land, and delete it when the port is done.
 
-### The cooldown pane is not in v1.0
+### The cooldown pane is Buffy's, not Magely's
 
 The TBC addon had an optional second pane tracking Innervate and Power Infusion providers, with a
-click to whisper a request. None of its data sources work as written on this client:
-
-- **Registering `COMBAT_LOG_EVENT_UNFILTERED` is a forbidden action** (measured by Stakeout on
-  69977; PORTING doc section 3). Observed cooldowns came from the combat log.
-- **`GetTalentInfo(tab, idx, inspect, unit)` is gone.** The dump has
-  `C_SpecializationInfo.GetTalentInfo(query)` and `GetTalentInfoByID`; whether either returns
-  Vanilla talent data for an inspected unit is unmeasured.
-- **Innervate is a baseline Druid spell (level 40), not a talent**, so inspecting for it never
-  worked on TBC either - that is what the old `innervateDebug` option papered over. Power Infusion
-  is a talent. Neither exists at the current level cap of 20, so nothing can be tested in game.
-
-It comes back as its own slice, on the library rather than beside it. The seam it needed is
-there: **r27** (LibGroupBuffs #24; r36 is pinned) adds `onTick(ui, elapsed)` on the window's
-half-second tick, in and out of combat, and `onAppearance(ui)`, beside `onLayout` /
-`onVisibility`. The pane's rules are in the library's `AGENTS.md` (companion panes) and its
-`tests/test_companion.lua` builds a Magely-shaped one: non-secure, parented to UIParent and
-anchored to `ui:MainFrame()`, laid out in `onLayout`, shown by `ui:IsVisible()`, counting from
-`GetTime()`. What is left is the data (below) and `MagelyCooldowns.lua`, keyed by GUID. **Never
-fork the window for it.**
-
-What `Tools/MagelyProbe` has measured so far (builds 70009 and 70959; `docs/FOREVER-NOTES.md`):
-
-- **The pane itself is possible**: a plain frame anchored under the protected window can be
-  resized, moved, hidden and shown in combat.
-- **Other players' casts arrive, but not which spell** (70959, `/fp steps mp casts`):
-  `UNIT_SPELLCAST_SUCCEEDED` fires for a party member in and out of combat, and its `spellID` is a
-  **secret value** every time, out of combat too. Your own casts are readable out of combat; in
-  combat is not measured yet. So the pane's source is each provider announcing its **own** casts
-  by addon message, which still needs a player's own `spellID` to be readable in combat.
-- **Talents live in a traits config** (70959, `/fp steps mp talents`): `C_ClassTalents.
-  GetActiveConfigID` answers, and `C_Traits.GetConfigInfo` names it after the class, with one
-  tree. `C_SpecializationInfo.GetTalentInfo` still answers nothing in any query shape, for
-  yourself or an inspected target; inspection itself works. Whether the tree's nodes say which
-  talents are taken is the probe's next question.
+click to whisper a request. **The owner decided (2026-11-18, #75) that it is built in Buffy first,
+not in the single-class addons**, so Magely does not port it, and `Tools/MagelyProbe` - which
+existed only for the pane's questions - is retired. Its measurements stay in `docs/FOREVER-NOTES.md`
+("Measured by `Tools/MagelyProbe`"): the combat log is forbidden, other players' casts arrive
+with a **secret** `spellID`, talents live in a traits config. Its code is in git history
+(`Tools/MagelyProbe` at `825abae`). Do not bring the pane back here without the owner's word.
 
 ## Repository Layout
 
@@ -128,16 +101,8 @@ What `Tools/MagelyProbe` has measured so far (builds 70009 and 70959; `docs/FORE
 - `docs/FOREVER-NOTES.md` — what is measured and what is not, and the in-game checklist.
 - `tests/` — Lua 5.1 unit tests, no game client. See `tests/README.md`.
 - `Tools/deploy.ps1` — deploy to the local Forever AddOns folder, both libraries included (it runs
-  LibGlass's own deploy first). `-Probe` /
-  `-ProbeOnly` deploy `Tools/MagelyProbe` too / alone, after `..\ForeverProbe` (`$env:FOREVERPROBE`)
-  by its own deploy.
-- `Tools/MagelyProbe/` — the throwaway probe for the cooldown pane's questions, a **ForeverProbe
-  module** (`/fp mp`, procedures `/fp steps mp casts | talents | pane`); see `docs/FOREVER-NOTES.md`
-  and read `C:\Projects\WoW\References\Docs\PROBES.md` and `ForeverProbe\docs\GUIDE.md` before
-  changing it. Never shipped (`.pkgmeta` ignores `Tools`). It reads every client global with
-  `rawget`, so a missing API is recorded rather than fatal, and `tests/test_probe.lua` holds it to
-  that. ForeverProbe is private, so CI skips that test (`FOREVERPROBE_OPTIONAL=1`) and it runs
-  locally only: run `tests\run.ps1` before a PR that touches the probe.
+  LibGlass's own deploy first). Magely has no probe: a new one would be a ForeverProbe module
+  (`C:\Projects\WoW\References\Docs\PROBES.md`).
 - `.github/workflows/package-check.yml` — tests against the pinned libraries, a dry-run package,
   and a check that the zip is exactly the addon plus both libraries at their pins. On a tag it then
   publishes that zip as a GitHub Release and on Wago Addons (see Releasing).
@@ -214,8 +179,7 @@ coloured by the line's shape (`^([^:]*:)(.*)$`), not the library's words.
 
 ### A gap in a library seam
 
-The seams were designed from Priestly alone and widened for Wildly; Magely will find more (the
-cooldown pane is the known one). **Never fork or patch the library from here.** Fix it in
+The seams were designed from Priestly alone and widened for Wildly; Magely may find more. **Never fork or patch the library from here.** Fix it in
 `C:\Projects\WoW\LibGroupBuffs`, following that repository's `AGENTS.md`: issue, branch, PR, `MINOR`
 raised in every runtime file, the previous tag's files added as test fixtures, Priestly's and
 Wildly's suites run against the working copy, merge, tag `r<MINOR>`. Then bump the pin here:

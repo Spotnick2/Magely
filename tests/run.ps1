@@ -98,12 +98,10 @@ Show-Pin -Name "LibGroupBuffs" -Path "Libs/LibGroupBuffs-1.0" -Root $Library
 # inside every test. Its files come from tests/libfiles.lua, the one reader of
 # its XML that the harness, deploy.ps1 and CI use too, so a new file cannot be
 # left unchecked. LibGlass is checked in its own repository, and loading it is
-# the first thing every test does. The probe is checked here because nothing
-# the TOC lists loads it.
+# the first thing every test does.
 $libFiles = & $Lua (Join-Path $PSScriptRoot "libfiles.lua") $Library load $LibGlass
 if ($LASTEXITCODE -ne 0) { Write-Host "LibGroupBuffs file list FAILED" -ForegroundColor Red; exit 1 }
 $extra = @($libFiles | ForEach-Object { Join-Path $Library $_ })
-$extra += @(Get-ChildItem (Join-Path $RepoRoot "Tools") -Recurse -Filter "*.lua" | ForEach-Object { $_.FullName })
 
 . (Join-Path $PSScriptRoot "kit.ps1")
 $kit = Get-WowTestKit -RepoRoot $RepoRoot -KitDev:$KitDev
