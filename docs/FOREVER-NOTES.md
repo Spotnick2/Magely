@@ -93,6 +93,8 @@ Not answered yet, and why:
   (`IsMage()` gates the config's event handler). No buff was learned in that session
   (`learnedDurations` is empty), so no cast was seen, and no checklist pass on this build is
   recorded.
+- **Owner's confirmation**: the owner confirmed 70959 as Magely's measured build on 2026-11-18
+  (#69), on the evidence above.
 - `GetBuildInfo()` on 70959 reports `Nov 13 2026` (ForeverProbe's log). The shared test stub at
   LibGroupBuffs r34 still models 70338, which `tests/test_stub.lua` pins; that moves with the
   library, not with this constant.
