@@ -1,6 +1,6 @@
 -- ============================================================================
 -- MagelyProbe  -  throwaway API probe for Magely's cooldown pane on WoW:
--- Forever 1.60.1. A ForeverProbe module: /fp mp.
+-- Forever 1.60.1.
 --
 -- The TBC Magely had a second pane: Innervate and Power Infusion providers,
 -- their cooldowns, and a click to whisper a request. Every data source it used
@@ -9,26 +9,19 @@
 -- Most of it needs no Mage and no level 40: any character in a group can run
 -- it.
 --
---   /fp mp spells               do the Mage / Druid / Priest spell IDs resolve?
---   /fp mp cast on|off          watch UNIT_SPELLCAST_SUCCEEDED for group units
---   /fp mp pane build           (out of combat) a protected frame + a plain pane
---   /fp mp pane test            (IN combat) try to hide/resize/move the pane
---   /fp mp pane remove          (out of combat) take them away again
---   /fp mp whisper <name>       whisper a (surnamed) name through C_ChatInfo
---   /fp mp inspect              inspect your target and read its talents
---   /fp mp report               everything recorded this session
---   /fp mp reset                forget this session's results (the log stays)
---   /fp mp clear                empty the saved log
+--   /mprobe spells              do the Mage / Druid / Priest spell IDs resolve?
+--   /mprobe cast on|off         watch UNIT_SPELLCAST_SUCCEEDED for group units
+--   /mprobe pane build          (out of combat) a protected frame + a plain pane
+--   /mprobe pane test           (IN combat) try to hide/resize/move the pane
+--   /mprobe pane remove         (out of combat) take them away again
+--   /mprobe whisper <name>      whisper a (surnamed) name through C_ChatInfo
+--   /mprobe inspect             inspect your target and read its talents
+--   /mprobe report              everything recorded so far
+--   /mprobe reset               forget it
 --
--- The experiments that need the owner's hands are procedures (/fp steps mp
--- <name>): `casts` (do other players' casts arrive?), `talents` (do talents
--- live in the traits system?) and `pane` (a plain pane under the protected
--- window, in combat).
---
--- Lines go to the /fp console and MagelyProbeDB.log; this session's answers
--- are in MagelyProbeDB.results, .casts, .samples and .blocked. /reload writes
--- them to _forever_\WTF\Account\<id>\SavedVariables\MagelyProbe.lua. Copy the
--- answers into docs/FOREVER-NOTES.md.
+-- Results are printed and kept in MagelyProbeDB, which is written on /reload
+-- (or logout) to _classic_beta_\WTF\Account\<id>\SavedVariables\MagelyProbe.lua.
+-- Copy the answers into docs/FOREVER-NOTES.md.
 --
 -- Every client global is read with rawget, so an API this client lacks is
 -- recorded as missing rather than throwing - a probe that dies on the first
@@ -40,37 +33,27 @@
 -- built or abandoned.
 -- ============================================================================
 
-local ADDON, NS = ...
-local MAX_LOG = 3000
-
-local FP = ForeverProbe
-local Probe = FP:Module("MagelyProbe", { api = 1, cmd = "mp" })
+local C = "|cffff8800[MagelyProbe]|r "
 
 local function G(name) return rawget(_G, name) end
-local function Say(text) Probe:Say(text) end
 
--- The probe's own state, for the event handlers and the test seam
--- (NS._test, never a global): the pane's frames live here.
-local P = {}
-
--- MagelyProbeDB, bound at the probe's own ADDON_LOADED: the client loads
--- SavedVariables AFTER the addon's files, so a table made at file scope would
--- be replaced and its writes lost (the guide's section 1; this probe's old bug).
-local DB
-
--- A measurement belongs to the session - and the build - it was taken in, so
--- each load starts the results afresh. The log is kept across sessions: each
--- line carries its run number.
-local function NewSession()
-    local gb = G("GetBuildInfo")
-    DB.build = gb and select(2, gb()) or nil
-    DB.results, DB.casts, DB.samples, DB.blocked = {}, {}, {}, {}
+local function Say(text)
+    local chat = G("DEFAULT_CHAT_FRAME")
+    if chat then chat:AddMessage(C .. text) end
 end
 
+-- The probe's own entry points and frames, on one table: the event frames
+-- call through it, and tests reach the frames to model a client refusal.
+MagelyProbe = {}
+
+-- Fresh every session on purpose: a measurement belongs to the session - and
+-- the build - it was taken in, so an older run's answers must not carry over.
+MagelyProbeDB = { build = nil, results = {}, casts = {}, samples = {}, blocked = {} }
+local DB = MagelyProbeDB
+
 local function Record(key, value)
-    if not DB then Say("not loaded yet: " .. key) return end
     DB.results[key] = value
-    Say(key .. ": " .. tostring(value))
+    Say(key .. ": |cffffffff" .. tostring(value) .. "|r")
 end
 
 local function InCombat()
@@ -154,8 +137,7 @@ local function UnitKind(unit)
     return ok and kind or "unreadable unit"
 end
 
-function P.OnCast(unit, castGUID, spellID)
-    if not DB then return end
+function MagelyProbe.OnCast(unit, castGUID, spellID)
     local combat = InCombat() and "combat" or "nocombat"
     local secret = Secret(spellID)
     local readable, name = "readable", nil
@@ -177,26 +159,18 @@ end
 local function WatchCasts(on)
     if on then
         if castFrame then Say("already watching") return end
-        castFrame = G("CreateFrame")("Frame")
-        -- The module's helper logs a throw (unknown event) or a refusal itself.
-        local registered = Probe:RegisterEvents(castFrame, { "UNIT_SPELLCAST_SUCCEEDED" })
-        Record("UNIT_SPELLCAST_SUCCEEDED registers", tostring(registered))
-        castFrame:SetScript("OnEvent", function(_, _, ...) P.OnCast(...) end)
-        Say("watching casts. Have party members cast anything, in and out of combat, then /fp mp report.")
+        local CF = G("CreateFrame")
+        castFrame = CF("Frame")
+        local ok, registered = pcall(castFrame.RegisterEvent, castFrame, "UNIT_SPELLCAST_SUCCEEDED")
+        Record("UNIT_SPELLCAST_SUCCEEDED registers",
+            ok and tostring(registered ~= false) or ("threw: " .. tostring(registered)))
+        castFrame:SetScript("OnEvent", function(_, _, ...) MagelyProbe.OnCast(...) end)
+        Say("watching casts. Have party members cast anything, in and out of combat, then "
+            .. "/mprobe report.")
     else
         if castFrame then castFrame:UnregisterAllEvents() castFrame = nil end
         Say("stopped watching casts")
     end
-end
-
--- How many casts of one kind of unit were seen this session, any state.
-local function CastsBy(kind, state)
-    local n = 0
-    for key, count in pairs(DB and DB.casts or {}) do
-        local k, s = key:match("^([^/]+)/([^/]+)/")
-        if k == kind and (state == nil or s == state) then n = n + count end
-    end
-    return n
 end
 
 ------------------------------------------------------------
@@ -204,8 +178,9 @@ end
 --
 -- Magely's window parents secure buttons, so the client refuses to hide or
 -- move it in combat (Priestly probe section 13). The pane would be a plain
--- frame anchored under it. Measured on 70009 (docs/FOREVER-NOTES.md): the pane
--- stays free. The procedure `pane` repeats it on a new build.
+-- frame anchored under it. The assumption is that the pane stays free - the
+-- dependency runs from the pane to the window, not back - but that is exactly
+-- what nobody has measured.
 --
 -- A refusal is silent: the call does nothing and ADDON_ACTION_BLOCKED fires,
 -- blamed on whichever addon's taint the call path carries (Priestly probe
@@ -213,50 +188,33 @@ end
 -- it TOOK EFFECT, and the blocked events it raised are reported with the
 -- function and the addon they were blamed on - never as a bare count, and not
 -- at all if the watcher could not register.
---
--- ForeverProbe's baseline is the one ADDON_ACTION_BLOCKED / FORBIDDEN watcher
--- (a module never registers its own). It offers no way to ask which blocked
--- actions one call raised, or whether its watcher registered, so until it
--- does (Spotnick2/ForeverProbe#19) the probe reads them from the host: the
--- watcher frame's IsEventRegistered, and the host's lines in ForeverProbe.lines.
 ------------------------------------------------------------
 
--- true / false, or nil when it cannot be told.
-local function BlockWatch()
-    local B = FP.Baseline
-    local frame = B and B.taintFrame
-    if not frame then return false end
-    local ok, all = pcall(function()
-        return frame:IsEventRegistered("ADDON_ACTION_BLOCKED")
-            and frame:IsEventRegistered("ADDON_ACTION_FORBIDDEN") and true or false
-    end)
-    if not ok then return nil end
-    return all
+-- Whether each restricted-action event registered: without it, "no blocked
+-- event" would read as a clean pass while nothing was listening.
+local blockWatch = {}
+
+function MagelyProbe.OnBlocked(event, who, fn)
+    local ok, text = pcall(function() return tostring(fn) .. " blamed on " .. tostring(who) end)
+    DB.blocked[#DB.blocked + 1] = event .. ": " .. (ok and text or "unreadable")
 end
 
-local function LastLine()
-    local lines = FP.lines
-    return lines[#lines]
-end
+local blockFrame
 
--- The host's blocked-action lines written after `mark`, oldest first, as
--- "EVENT: function blamed on addon".
-local function BlockedSince(mark)
-    local out, lines = {}, FP.lines
-    for i = #lines, 1, -1 do
-        local line = lines[i]
-        if line == mark then break end
-        if line.m == FP.host.name then
-            local event, who, fn = FP.Plain(line.text):match("(ADDON_ACTION_%u+) (%S+) (.*)$")
-            if event then table.insert(out, 1, event .. ": " .. fn .. " blamed on " .. who) end
-        end
+local function WatchBlocked()
+    if blockFrame then return end
+    blockFrame = G("CreateFrame")("Frame")
+    for _, ev in ipairs({ "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN" }) do
+        local ok, registered = pcall(blockFrame.RegisterEvent, blockFrame, ev)
+        blockWatch[ev] = ok and registered ~= false
+        Record(ev .. " registers", ok and tostring(registered ~= false) or ("threw: " .. tostring(registered)))
     end
-    return out
+    blockFrame:SetScript("OnEvent", function(_, ev, ...) MagelyProbe.OnBlocked(ev, ...) end)
 end
 
 local function PaneBuild()
     if InCombat() then Say("build it out of combat") return end
-    if P.pane then Say("already built") return end
+    if MagelyProbe.pane then Say("already built") return end
     local CF, UIP = G("CreateFrame"), G("UIParent")
     local parent = CF("Frame", nil, UIP)
     parent:SetSize(120, 60)
@@ -278,28 +236,30 @@ local function PaneBuild()
     pbg:SetColorTexture(0.4, 0.1, 0.1, 0.8)
     pane:Show()
 
-    P.parent, P.pane = parent, pane
-    local watch = BlockWatch()
-    Record("blocked-action watcher registered", watch == nil and "unknown" or tostring(watch))
+    MagelyProbe.parent, MagelyProbe.pane = parent, pane
+    WatchBlocked()
     local okP, prot = pcall(function() return tostring(parent:IsProtected()) end)
     Record("pane built; stand-in IsProtected", okP and prot or "unreadable")
-    Say("blue = the protected stand-in, red = the plain pane under it. Start a fight, then /fp mp pane test.")
+    Say("blue = the protected stand-in, red = the plain pane under it. Start a fight, then "
+        .. "/mprobe pane test.")
 end
 
 -- One attempted change: whether it threw, whether it took effect, and which
--- blocked actions it raised. Returns whether it took effect.
-local function Attempt(label, act, check)
-    local mark = LastLine()
+-- restricted-action events it raised. Returns whether it took effect.
+local function Try(label, act, check)
+    local before = #DB.blocked
     local ok, err = pcall(act)
     local okCheck, result = pcall(check)
     local took = okCheck and result and true or false
     local blocked
-    if BlockWatch() ~= true then
-        blocked = "blocked events unavailable (the host's watcher is not registered, or can't be told)"
+    if not (blockWatch.ADDON_ACTION_BLOCKED and blockWatch.ADDON_ACTION_FORBIDDEN) then
+        blocked = "blocked events unavailable (watcher not registered)"
+    elseif #DB.blocked == before then
+        blocked = "no blocked event"
     else
-        local seen = BlockedSince(mark)
-        for _, b in ipairs(seen) do DB.blocked[#DB.blocked + 1] = b end
-        blocked = #seen == 0 and "no blocked event" or ("raised " .. table.concat(seen, "; "))
+        local seen = {}
+        for i = before + 1, #DB.blocked do seen[#seen + 1] = DB.blocked[i] end
+        blocked = "raised " .. table.concat(seen, "; ")
     end
     Record("pane " .. label, string.format("%s, took effect=%s, %s",
         ok and "no error" or ("threw: " .. tostring(err)), tostring(took), blocked))
@@ -307,16 +267,16 @@ local function Attempt(label, act, check)
 end
 
 local function PaneTest()
-    local pane, parent = P.pane, P.parent
-    if not pane then Say("run /fp mp pane build first, out of combat") return end
+    local pane, parent = MagelyProbe.pane, MagelyProbe.parent
+    if not pane then Say("run /mprobe pane build first, out of combat") return end
     Record("pane test in combat", tostring(InCombat()))
     -- Read defensively: a number the client does not hand back must not end
     -- the probe before the calls that matter have been tried.
     local okH, h = pcall(pane.GetHeight, pane)
     h = okH and tonumber(h) or 40
-    Attempt("SetHeight", function() pane:SetHeight(h + 20) end,
+    Try("SetHeight", function() pane:SetHeight(h + 20) end,
         function() return math.abs(pane:GetHeight() - (h + 20)) < 0.5 end)
-    Attempt("re-anchor", function()
+    Try("re-anchor", function()
         pane:ClearAllPoints()
         pane:SetPoint("BOTTOMLEFT", parent, "TOPLEFT", 0, 4)
     end, function()
@@ -326,20 +286,20 @@ local function PaneTest()
     -- Show only means something from hidden: after a refused Hide the pane is
     -- still shown, and "shown after Show" would pass without anything having
     -- happened.
-    if Attempt("Hide", function() pane:Hide() end, function() return not pane:IsShown() end) then
-        Attempt("Show", function() pane:Show() end, function() return pane:IsShown() end)
+    if Try("Hide", function() pane:Hide() end, function() return not pane:IsShown() end) then
+        Try("Show", function() pane:Show() end, function() return pane:IsShown() end)
     else
         Record("pane Show", "untestable: Hide was refused, so the pane never left the screen")
     end
     -- The control: this one SHOULD be refused in combat.
-    Attempt("Hide the PROTECTED stand-in (control)", function() parent:Hide() end,
+    Try("Hide the PROTECTED stand-in (control)", function() parent:Hide() end,
         function() return not parent:IsShown() end)
 end
 
 local function PaneRemove()
     if InCombat() then Say("remove it out of combat") return end
-    if P.pane then P.pane:Hide() P.pane = nil end
-    if P.parent then P.parent:Hide() P.parent = nil end
+    if MagelyProbe.pane then MagelyProbe.pane:Hide() MagelyProbe.pane = nil end
+    if MagelyProbe.parent then MagelyProbe.parent:Hide() MagelyProbe.parent = nil end
     Say("pane removed")
 end
 
@@ -349,11 +309,11 @@ end
 -- Addon messages to "First Surname" are measured to route (PORTING doc,
 -- surnames). A chat WHISPER through C_ChatInfo is not. Whether it arrived can
 -- only be seen by the recipient, so this records only whether the call was
--- accepted. The whisper itself is a deliberate chat stimulus.
+-- accepted.
 ------------------------------------------------------------
 
 local function Whisper(target)
-    if not target or target == "" then Say("usage: /fp mp whisper First Surname") return end
+    if not target or target == "" then Say("usage: /mprobe whisper First Surname") return end
     local CI = G("C_ChatInfo")
     local send = (CI and CI.SendChatMessage) or G("SendChatMessage")
     local via = (CI and CI.SendChatMessage) and "C_ChatInfo.SendChatMessage" or "SendChatMessage"
@@ -379,7 +339,7 @@ end
 ------------------------------------------------------------
 
 local inspectFrame
--- The GUID /fp mp inspect asked about. INSPECT_READY for anybody else -
+-- The GUID /mprobe inspect asked about. INSPECT_READY for anybody else -
 -- another addon's inspection, or a target changed since - is not this answer.
 local inspectGUID
 
@@ -472,8 +432,7 @@ end
 
 local IGNORED = "INSPECT_READY ignored (not the requested unit)"
 
-function P.OnInspectReady(guid)
-    if not DB then return end
+function MagelyProbe.OnInspectReady(guid)
     local UG = G("UnitGUID")
     local okMatch, isOurs = pcall(function() return inspectGUID ~= nil and guid == inspectGUID end)
     if not (okMatch and isOurs) then
@@ -492,9 +451,9 @@ function P.OnInspectReady(guid)
         local CSI = G("C_SpecializationInfo")
         if CSI and CSI.GetInspectSpecialization then
             local okS, spec = pcall(CSI.GetInspectSpecialization, "target")
-            local okText, text = pcall(tostring, spec)
+            local okT, text = pcall(tostring, spec)
             Record("GetInspectSpecialization(target)",
-                (okS and okText) and text or ("threw: " .. tostring(okS and text or spec)))
+                (okS and okT) and text or ("threw: " .. tostring(okS and text or spec)))
             if okS then RecordSpecName("inspected", spec) end
         end
     end
@@ -502,34 +461,30 @@ function P.OnInspectReady(guid)
     if clear then pcall(clear) end
 end
 
-local function OwnTalents()
+local function Inspect()
+    local UE, UG, CanI, Notify = G("UnitExists"), G("UnitGUID"), G("CanInspect"), G("NotifyInspect")
     -- Your own talents first, as the control: if these read nothing, neither
     -- shape addresses a Vanilla tree at all.
     QueryTalents(false, nil)
     RecordTraitConfig()
-end
-
--- Sends the inspection; true when a request went out.
-local function SendInspect()
-    local UE, UG, CanI, Notify = G("UnitExists"), G("UnitGUID"), G("CanInspect"), G("NotifyInspect")
-    if not (UE and UE("target")) then Say("target someone with talents and run it again") return false end
+    if not (UE and UE("target")) then Say("target someone with talents and run it again") return end
     if not (CanI and Notify) then
         Record("inspect", string.format("CanInspect %s, NotifyInspect %s",
             CanI and "present" or "MISSING", Notify and "present" or "MISSING"))
-        return false
+        return
     end
     -- One argument, as the 69977 dump declares it: CanInspect(targetGUID:UnitToken).
     local okC, can = pcall(function() return CanI("target") and true or false end)
     Record("CanInspect(target)", okC and tostring(can) or ("threw: " .. tostring(can)))
     if not (okC and can) then
         Say("the client says this target cannot be inspected - get closer, or try another")
-        return false
+        return
     end
     if not inspectFrame then
         inspectFrame = G("CreateFrame")("Frame")
-        local registered = Probe:RegisterEvents(inspectFrame, { "INSPECT_READY" })
-        Record("INSPECT_READY registers", tostring(registered))
-        inspectFrame:SetScript("OnEvent", function(_, _, guid) P.OnInspectReady(guid) end)
+        local ok, registered = pcall(inspectFrame.RegisterEvent, inspectFrame, "INSPECT_READY")
+        Record("INSPECT_READY registers", ok and tostring(registered ~= false) or ("threw: " .. tostring(registered)))
+        inspectFrame:SetScript("OnEvent", function(_, _, guid) MagelyProbe.OnInspectReady(guid) end)
     end
     local okG, guid = pcall(function() return UG and UG("target") end)
     inspectGUID = okG and guid or nil
@@ -538,12 +493,6 @@ local function SendInspect()
     -- inspection of the same unit must not be published under this one.
     if not okN then inspectGUID = nil end
     Record("NotifyInspect(target)", okN and "sent - waiting for INSPECT_READY" or ("threw: " .. tostring(err)))
-    return okN
-end
-
-local function Inspect()
-    OwnTalents()
-    SendInspect()
 end
 
 ------------------------------------------------------------
@@ -551,8 +500,12 @@ end
 ------------------------------------------------------------
 
 local function Report()
-    if not DB then Say("not loaded yet") return end
-    Say("build " .. tostring(DB.build) .. " - results:")
+    -- select, not `gb and gb()`: an and/or keeps only the first return, and
+    -- the build is the second.
+    local gb = G("GetBuildInfo")
+    local build = gb and select(2, gb()) or nil
+    DB.build = build
+    Say("build " .. tostring(build) .. " - results:")
     local keys = {}
     for k in pairs(DB.results) do keys[#keys + 1] = k end
     table.sort(keys)
@@ -561,155 +514,44 @@ local function Report()
     for k in pairs(DB.casts) do castKeys[#castKeys + 1] = k end
     table.sort(castKeys)
     if #castKeys == 0 then
-        Say("  casts: none seen" .. (castFrame and " yet" or " (not watching: /fp mp cast on)"))
+        Say("  casts: none seen" .. (castFrame and " yet" or " (not watching: /mprobe cast on)"))
     end
     for _, k in ipairs(castKeys) do Say("  cast " .. k .. " x" .. DB.casts[k]) end
     for _, b in ipairs(DB.blocked) do Say("  " .. b) end
 end
 
 ------------------------------------------------------------
--- Commands: /fp mp <command> [args]
+-- Slash command
 ------------------------------------------------------------
 
-Probe:Command("spells", function() ProbeSpells() end, "do the Mage / Druid / Priest spell IDs resolve?")
-Probe:Command("cast", function(args) WatchCasts((args or ""):lower() ~= "off") end,
-    "on|off - watch UNIT_SPELLCAST_SUCCEEDED for group units")
-Probe:Command("pane", function(args)
-    local sub = (args or ""):lower()
-    if sub == "build" then PaneBuild()
-    elseif sub == "test" then PaneTest()
-    elseif sub == "remove" then PaneRemove()
-    else Say("usage: /fp mp pane build | test | remove") end
-end, "build|test|remove - a plain pane under a protected frame, tested in combat")
--- The rest of the line, not one token: whisper targets have surnames.
-Probe:Command("whisper", function(args) Whisper(args) end, "<First Surname> - whisper through C_ChatInfo")
-Probe:Command("inspect", function() Inspect() end, "your own talents, then inspect your target's")
-Probe:Command("report", function() Report() end, "everything recorded this session")
-Probe:Command("reset", function()
-    if not DB then Say("not loaded yet") return end
-    NewSession()
-    Say("this session's results forgotten (the log stays: /fp mp clear)")
-end, "forget this session's results")
-Probe:Command("clear", function() Probe:ClearLog(); Say("log cleared") end, "empty the saved log")
-
-------------------------------------------------------------
--- Procedures: /fp steps mp <name>
-------------------------------------------------------------
-
--- Do other players' casts arrive? One ~8-second run on 70009 saw nothing for
--- any unit, but whether the second account was in the party was not
--- confirmed. This is the controlled repeat: the party is confirmed first,
--- your own cast is the control, and a timeout is the "no" answer.
-Probe:Steps("casts", {
-    title = "Do other players' casts arrive?",
-    { text = "Get a second player (your other account will do) into your party, both in the same zone.",
-      wait = function()
-          local n = G("GetNumGroupMembers")
-          local members = n and n() or 0
-          return members > 1, "party members: " .. tostring(members)
-      end, timeout = 300 },
-    { text = "Is the other player online and close to you?", ask = true },
-    { text = "Watching casts now.", auto = true, run = function()
-          WatchCasts(true)
-          return DB.results["UNIT_SPELLCAST_SUCCEEDED registers"]
-      end,
-      check = function() return DB.results["UNIT_SPELLCAST_SUCCEEDED registers"] == "true", "registered" end },
-    { text = "The control: cast any spell yourself, out of combat.",
-      wait = function() return CastsBy("player") > 0, "your casts seen: " .. CastsBy("player") end,
-      timeout = 120 },
-    { text = "Now the other player casts any spell, out of combat (a buff on themselves is fine). "
-          .. "Waits up to 2 minutes: running out means their casts don't arrive.",
-      wait = function() return CastsBy("party") > 0, "party casts seen: " .. CastsBy("party") end,
-      timeout = 120, screenshot = "party cast" },
-    { text = "In a fight (pull a mob together), the other player casts again. Skip if you can't.",
-      wait = function() return CastsBy("party", "combat") > 0,
-          "party casts in combat: " .. CastsBy("party", "combat") end,
-      timeout = 180 },
-    { text = "The counts.", auto = true, run = function()
-          Report()
-          WatchCasts(false)
-          return CastsBy("player"), CastsBy("party"), CastsBy("party", "combat")
-      end,
-      check = function() return CastsBy("party") > 0, "party casts: " .. CastsBy("party") end },
-    { text = "Type /reload to save the results (or press Reload now).", reload = true },
-})
-
--- Do talents live in Retail's traits system? GetTalentInfo answered nothing
--- in any shape on 70009, for yourself or an inspected target.
-Probe:Steps("talents", {
-    title = "Where do talents live?",
-    { text = "Your own talents and talent config.", auto = true, run = function()
-          OwnTalents()
-          return DB.results["C_ClassTalents.GetActiveConfigID"]
-      end },
-    { text = "Target another player who has spent talent points, and stand close to them.",
-      wait = function()
-          local UE, UIP = G("UnitExists"), G("UnitIsPlayer")
-          local ok, ready = pcall(function()
-              return UE and UE("target") and UIP and UIP("target") and true or false
-          end)
-          return ok and ready, "no player targeted"
-      end, timeout = 300 },
-    { text = "Inspect them.", button = "Inspect", run = function()
-          return SendInspect()
-      end,
-      check = function() return DB.results["NotifyInspect(target)"] ~= nil
-          and DB.results["NotifyInspect(target)"]:find("^sent") ~= nil, DB.results["NotifyInspect(target)"] end },
-    { text = "Waiting for the inspection to arrive (INSPECT_READY).", event = "INSPECT_READY", shapeOnly = true },
-    { text = "What came back.", auto = true, run = function()
-          return DB.results["INSPECT_READY"], DB.results["inspected talents by specializationIndex/tier/column"],
-              DB.results["inspected spec by ID"]
-      end,
-      check = function() return DB.results["INSPECT_READY"] == "for the requested target", DB.results["INSPECT_READY"] end },
-    { text = "Type /reload to save the results (or press Reload now).", reload = true },
-})
-
--- A plain pane under the protected window, in combat. Measured on 70009 (it
--- stays free); this repeats it on a new build.
-Probe:Steps("pane", {
-    title = "A plain pane under a protected frame, in combat",
-    { text = "Out of combat: build the stand-in (blue) and the pane (red).", button = "Build", run = function()
-          PaneBuild()
-          return P.pane ~= nil, DB.results["blocked-action watcher registered"]
-      end,
-      check = function() return P.pane ~= nil, "built" end, screenshot = "built" },
-    { text = "Start a fight (a training dummy or any mob). The step completes when combat starts.",
-      event = "PLAYER_REGEN_DISABLED" },
-    { text = "Try to resize, move, hide and show the pane, and hide the stand-in.", auto = true, run = function()
-          PaneTest()
-          return DB.results["pane Hide"], DB.results["pane Hide the PROTECTED stand-in (control)"]
-      end,
-      check = function()
-          local hide = DB.results["pane Hide"] or ""
-          local control = DB.results["pane Hide the PROTECTED stand-in (control)"] or ""
-          return hide:find("took effect=true", 1, true) ~= nil and control:find("took effect=false", 1, true) ~= nil,
-              hide, control
-      end, screenshot = "in combat" },
-    { text = "Finish the fight. The step completes when combat ends.", event = "PLAYER_REGEN_ENABLED" },
-    { text = "Take the frames away.", auto = true, run = function()
-          PaneRemove()
-          return P.pane == nil
-      end },
-    { text = "Type /reload to save the results (or press Reload now).", reload = true },
-})
-
-------------------------------------------------------------
--- Load
-------------------------------------------------------------
-
-local boot = G("CreateFrame")("Frame")
-Probe:RegisterEvents(boot, { "ADDON_LOADED" })
-boot:SetScript("OnEvent", function(_, _, name)
-    if name ~= ADDON then return end
-    Probe:Ready()
-    if type(MagelyProbeDB) ~= "table" then MagelyProbeDB = {} end
-    DB = MagelyProbeDB
-    if type(DB.log) ~= "table" then DB.log = {} end
-    Probe:UseLog(DB.log, MAX_LOG)
-    DB.loads = (tonumber(DB.loads) or 0) + 1
-    NewSession()
-    Say("loaded (" .. DB.loads .. " loads), build " .. tostring(DB.build) .. ". /fp mp for the commands, "
-        .. "/fp steps for the procedures")
-end)
-
-NS._test = { Probe = Probe, P = P }
+SLASH_MAGELYPROBE1 = "/mprobe"
+SlashCmdList["MAGELYPROBE"] = function(msg)
+    msg = msg or ""
+    -- The rest of the line, not one token: whisper targets have surnames.
+    local cmd, rest = msg:match("^%s*(%S+)%s*(.-)%s*$")
+    cmd = cmd and cmd:lower() or ""
+    if cmd == "spells" then
+        ProbeSpells()
+    elseif cmd == "cast" then
+        WatchCasts(rest:lower() ~= "off")
+    elseif cmd == "pane" then
+        local sub = rest:lower()
+        if sub == "build" then PaneBuild()
+        elseif sub == "test" then PaneTest()
+        elseif sub == "remove" then PaneRemove()
+        else Say("usage: /mprobe pane build | test | remove") end
+    elseif cmd == "whisper" then
+        Whisper(rest)
+    elseif cmd == "inspect" then
+        Inspect()
+    elseif cmd == "report" then
+        Report()
+    elseif cmd == "reset" then
+        MagelyProbeDB = { build = nil, results = {}, casts = {}, samples = {}, blocked = {} }
+        DB = MagelyProbeDB
+        Say("forgotten")
+    else
+        Say("/mprobe spells | cast on|off | pane build|test|remove | whisper <name> | "
+            .. "inspect | report | reset")
+    end
+end
