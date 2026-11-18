@@ -400,7 +400,7 @@ end
 -- than leaving a handler silently dead. The TBC build also listened to the
 -- combat log, INSPECT_READY and CHAT_MSG_ADDON for its cooldown pane; the
 -- first cannot even be registered here (a forbidden action), and the pane is
--- not part of this port (AGENTS.md).
+-- not part of Magely: it is being built in Buffy (#75).
 local evtFrame = CreateFrame("Frame", "MagelyEvents")
 Magely.RegisterEvents(evtFrame,
     "PLAYER_LOGIN",
