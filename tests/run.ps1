@@ -9,8 +9,8 @@
     tests/kit.pin names. tests/kit.ps1 puts that commit in
     %LOCALAPPDATA%\WowTestKit\<sha> (or, with -KitDev, uses the ..\WowTestKit
     working copy), and this script hands off to the kit's runner, which
-    syntax-checks the files (with the luac beside -Lua) and runs every
-    tests/test_*.lua.
+    syntax-checks the files (with the luac beside -Lua, which must exist) and
+    runs every tests/test_*.lua.
 
     Magely embeds two libraries, loaded before its own files: LibGlass-1.0
     (the glass material) and LibGroupBuffs-1.0 (the compat layer, engine and
@@ -38,6 +38,16 @@ $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $Lua)) {
     Write-Error "Lua 5.1 interpreter not found at: $Lua  (pass -Lua <path>)"
+    exit 1
+}
+
+# The syntax check is required here, as it was before the kit: the kit's
+# runner only warns ("luac -p SKIPPED") when there is no luac.exe beside
+# lua.exe, and a skipped check that still ends green is how it once looked
+# green while never running.
+$luac = Join-Path (Split-Path -Parent $Lua) "luac.exe"
+if (-not (Test-Path $luac)) {
+    Write-Error "luac (Lua 5.1) not found at: $luac - the syntax check is required; install it beside $Lua"
     exit 1
 }
 

@@ -23,7 +23,8 @@ single test, from the repo root so the relative paths resolve, once `run.ps1` ha
 Use the Lua **5.1** interpreter, not a newer Lua that may be first on `PATH`. `run.ps1` defaults to
 `C:\Program Files (x86)\Lua\5.1\lua.exe` (override with `-Lua <path>`). The kit's runner runs
 `luac -p` over the files `Magely.toc` loads, the library's and the probe's, with the `luac.exe`
-beside `lua.exe`; without one it says `luac -p SKIPPED` in yellow rather than failing.
+beside `lua.exe`. That check is required: the kit's runner alone would only warn
+(`luac -p SKIPPED`), so `run.ps1` fails first if there is no `luac.exe` there.
 
 Each file ends with `<name>: N passed, M failed` (the kit's `done()`, which also fails on a stray
 `|` in any printed line). **The kit's `print` goes to `WoW.chat`, not the terminal.**
