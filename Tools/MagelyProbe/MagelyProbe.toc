@@ -1,0 +1,9 @@
+## Interface: 16001
+## Title: |cffff8800Magely Probe|r
+## Notes: Magely's in-game release check. A ForeverProbe module: /fp steps mp check
+## Author: Spotnick
+## Version: dev
+## Dependencies: ForeverProbe, Magely
+## SavedVariables: MagelyProbeDB
+
+MagelyProbe.lua
