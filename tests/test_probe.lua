@@ -558,24 +558,103 @@ H.eq(record("casts").results[7].check, "PASS", "the counts pass with a party cas
 H.eq(at("casts"), 8, "and the procedure asks for a /reload")
 S.Stop()
 
--- Again with no party cast: the final check must FAIL, never inherit a pass.
-fp("mp reset")
+-- Again, with NO manual reset: the first run's casts are still in the
+-- session's counters, and must not answer for this run. Its waits must wait,
+-- and with no party cast the final check must FAIL, never inherit a pass.
 fp("steps mp casts")
 S.Poll()
 S.Answer(true)
+S.Poll()
+H.eq(at("casts"), 4, "a repeat run waits for a new cast of yours, not the first run's")
 WoW.dispatch("UNIT_SPELLCAST_SUCCEEDED", "player", "c3", 1459)
 S.Poll()
+H.eq(at("casts"), 5, "and goes on when one arrives")
+S.Poll()
+H.eq(at("casts"), 5, "the first run's party cast does not complete this run's wait")
 S.Skip()                                    -- the party member never cast
 S.Skip()
-H.eq(record("casts").results[7].check, "FAIL", "no party cast fails the procedure's check")
+H.eq(record("casts").results[7].check, "FAIL", "no party cast this run fails the check")
+H.eq(MagelyProbeDB.casts["party/nocombat/readable"] > 0, true, "though the session's counter still holds the old one")
 S.Stop()
+
+-- Casts seen by an earlier manual watch don't count either.
+fp("mp cast on")
+WoW.dispatch("UNIT_SPELLCAST_SUCCEEDED", "party1", "c4", 1459)
+fp("steps mp casts")
+S.Poll()
+S.Answer(true)
+WoW.dispatch("UNIT_SPELLCAST_SUCCEEDED", "player", "c5", 1459)
+S.Poll()
+S.Poll()
+H.eq(at("casts"), 5, "a party cast from before the run started does not count")
+S.Stop()
+fp("mp cast off")
 WoW.groupMembers = 0
 
-for _, name in ipairs({ "talents", "pane" }) do
-    H.check(pcall(fp, "steps mp " .. name), "the " .. name .. " procedure starts")
-    H.eq(record(name).status, "active", name .. " is running")
-    S.Stop()
+------------------------------------------------------------
+-- `talents`, through the inspection
+--
+-- Its wait completes on the answer to THIS request: never on another addon's
+-- INSPECT_READY, never on an earlier run's answer, whichever handler the
+-- event reaches first.
+------------------------------------------------------------
+
+rawset(_G, "C_SpecializationInfo", {
+    GetTalentInfo = function() return nil end,
+    GetInspectSpecialization = function() return 1486 end,
+})
+rawset(_G, "CanInspect", function() return true end)
+local notifies = 0
+rawset(_G, "NotifyInspect", function() notifies = notifies + 1 end)
+rawset(_G, "UnitIsPlayer", function(unit) return unit == "target" end)
+WoW.SetUnit("target", { name = "Zoruka Mortalis", guid = "T1", class = "PRIEST" })
+
+H.check(pcall(fp, "steps mp talents"), "the talents procedure starts")
+H.eq(at("talents"), 2, "its own talents are read on arrival, then it waits for a target")
+S.Poll()
+H.eq(at("talents"), 3, "a player target goes on to the inspection")
+S.Run()
+H.eq(notifies, 1, "the Inspect button sends the request")
+H.eq(record("talents").results[3].check, "PASS", "and its check sees it sent")
+H.eq(at("talents"), 4, "then it waits for the answer")
+WoW.dispatch("INSPECT_READY", "SOMEONE-ELSE")
+S.Poll()
+H.eq(at("talents"), 4, "another addon's INSPECT_READY does not complete the wait")
+WoW.dispatch("INSPECT_READY", "T1")
+S.Poll()
+H.eq(at("talents"), 6, "the answer to this request does, and what came back is read")
+H.eq(record("talents").results[5].check, "PASS", "with the answer for the requested target")
+S.Stop()
+
+-- A second run, after a successful one: the old answer is not this one's.
+fp("steps mp talents")
+S.Poll()
+S.Run()
+H.eq(notifies, 2, "the second run sends its own request")
+H.eq(result("INSPECT_READY"), nil, "and the first run's answer is gone")
+S.Poll()
+H.eq(at("talents"), 4, "so the wait waits for the new answer")
+S.DoneByHand()                              -- the owner gives up waiting
+H.eq(record("talents").results[5].check, "FAIL", "and with no answer, the check fails rather than pass on the old one")
+S.Stop()
+
+-- An attempt that stops early (it can't inspect) is never "answered" either.
+fp("steps mp talents")
+S.Poll()
+rawset(_G, "CanInspect", function() return false end)
+S.Run()
+H.eq(notifies, 2, "nothing is sent when the target can't be inspected")
+H.eq(record("talents").results[3].check, "FAIL", "the Inspect step's check fails")
+S.Poll()
+H.eq(at("talents"), 4, "and the wait does not complete from the earlier answer")
+S.Stop()
+for _, name in ipairs({ "C_SpecializationInfo", "CanInspect", "NotifyInspect", "UnitIsPlayer" }) do
+    rawset(_G, name, nil)
 end
+
+H.check(pcall(fp, "steps mp pane"), "the pane procedure starts")
+H.eq(record("pane").status, "active", "pane is running")
+S.Stop()
 
 H.eq(#WoW.messages, 0, "and none of the probe's diagnostics went to chat")
 
