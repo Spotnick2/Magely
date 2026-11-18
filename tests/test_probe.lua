@@ -184,8 +184,11 @@ H.check(pcall(mp, "pane test"), "testing before building says to build first")
 H.check(logSince(before):find("build first", 1, true), "in so many words")
 
 -- The host's watcher is the one ADDON_ACTION_BLOCKED listener. When the probe
--- cannot tell that it registered - this stub has no IsEventRegistered - every
+-- cannot tell that it registered - here IsEventRegistered throws - every
 -- "no blocked event" would be silence, not a clean pass, and must say so.
+local taint = FP.Baseline.taintFrame
+H.check(taint ~= nil, "the host has its blocked-action watcher")
+taint.IsEventRegistered = function() error("IsEventRegistered: not answered") end
 H.check(pcall(mp, "pane build"), "the pane builds out of combat")
 H.eq(result("blocked-action watcher registered"), "unknown", "and records that it can't tell the watcher's state")
 H.check(P.pane ~= nil and P.parent ~= nil, "both frames exist")
@@ -211,9 +214,8 @@ WoW.inCombat = false
 H.check(pcall(mp, "pane remove"), "the frames are removed out of combat")
 H.eq(P.pane, nil, "and forgotten")
 
--- The host's watcher, modelled with the client's IsEventRegistered.
-local taint = FP.Baseline.taintFrame
-H.check(taint ~= nil, "the host has its blocked-action watcher")
+-- The host's watcher, modelled with the client's IsEventRegistered over the
+-- stub's registrations, so a refusal can be set per event.
 taint.IsEventRegistered = function(self, ev) return (WoW.events[self] or {})[ev] == true end
 -- A watcher the client refused: unavailable again.
 WoW.events[taint].ADDON_ACTION_FORBIDDEN = nil

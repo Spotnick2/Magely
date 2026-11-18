@@ -1,5 +1,11 @@
 # Magely Changelog
 
+## Unreleased
+
+### Changed
+- Updated the embedded LibGroupBuffs library to r35. Nothing changes in game: r35 only moves the
+  library's tests onto a shared test kit. LibGlass stays at r11.
+
 ## v1.1.0 - 2026-11-04
 
 ### Added

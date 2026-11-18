@@ -26,8 +26,9 @@ local x, y, z = strsplit(",;", "1;2,3")
 H.eq(x .. y .. z, "123", "every character of the separator splits")
 
 ------------------------------------------------------------
--- The r34 shared stub models build 70338, matching Magely's existing
--- MEASURED_ON_BUILD. This pin update does not claim a new runtime measurement.
+-- The shared stub (r35, on WowTestKit) still models build 70338 for
+-- GetBuildInfo; tests/kit.pin's build only picks the API lists the kit
+-- checks against. This does not claim a runtime measurement.
 ------------------------------------------------------------
 
 WoW.reset()
