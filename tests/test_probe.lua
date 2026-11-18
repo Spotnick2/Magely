@@ -116,8 +116,13 @@ S.Run()                                                        -- 11: set by ins
 H.eq(result(11).check, "PASS", "the setting step runs outdoors")
 poll()
 H.eq(at(), 13, "outdoors neither row shows (Dampen is still on you, and doesn't count here)")
-S.Skip() S.Skip() S.Skip()                                     -- no dungeon today
-H.eq(at(), 16, "the dungeon steps can be skipped")
+S.Skip() S.Skip()                                              -- no dungeon today
+H.eq(at(), 15, "the dungeon steps can be skipped")
+S.Run()                                                        -- Read, pressed outdoors
+H.eq(at(), 15, "Read outdoors refuses and keeps the step, for Skip, rather than failing it")
+H.eq(result(15).check, nil, "with no check recorded")
+S.Skip()
+H.eq(at(), 16, "and Skip moves on")
 
 -- clicks
 -- A cast from before the Arm must not count for the click.

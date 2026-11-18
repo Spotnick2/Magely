@@ -247,10 +247,11 @@ local function showWindow()
 end
 
 Probe:Steps("check", {
-    rev = 1,
+    rev = 2,                                   -- 2: Read refuses outdoors; restore hint
     title = "Magely's in-game check (Mage-specific)",
     { text = "On a Mage of level 18 or higher (Amplify Magic), out of combat, alone or in a party. "
-          .. "Type /console scriptErrors 1 once, then press Next." },
+          .. "Type /console scriptErrors 1 once, then press Next. This check changes your Amplify and "
+          .. "Dampen modes and puts them back at the end: if you Stop part-way, type /fp mp restore." },
     { text = "Reading the versions and the buffs you know, and saving the settings this check changes.",
       auto = true,
       run = function()
@@ -286,13 +287,13 @@ Probe:Steps("check", {
       timeout = 120, screenshot = "detected, amplify",
       wait = function()
           local r = rowsAfterRebuild()
-          return r.amplify == true, "amplify row not shown yet"
+          return r.amplify == true, r.amplify and "amplify row shown" or "amplify row not shown yet"
       end },
     { text = "Now cast Dampen Magic on yourself (it replaces Amplify on that target). The Dampen row should appear.",
       timeout = 120, screenshot = "detected, dampen",
       wait = function()
           local r = rowsAfterRebuild()
-          return r.dampen == true, "dampen row not shown yet"
+          return r.dampen == true, r.dampen and "dampen row shown" or "dampen row not shown yet"
       end },
     { text = "Did each row appear within a second or two of the buff landing, with nothing odd?", ask = true },
 
@@ -317,9 +318,14 @@ Probe:Steps("check", {
           return instanceType == "party" or instanceType == "raid", "not in a dungeon yet"
       end },
     { text = "Inside: the window you closed by hand stayed closed?", ask = true, screenshot = "instance, inside" },
-    { text = "Reopening the window and reading which rows the instance list turns on here.", button = "Read",
+    -- Outdoors this refuses to run (the step stays, for Skip) rather than
+    -- completing with a FAIL that means only "you skipped the dungeon".
+    { text = "Inside the dungeon: reopen the window and read which rows the instance list turns on here. "
+          .. "(Skipped the dungeon? Press Skip.)", button = "Read",
       screenshot = "instance rows",
       run = function()
+          local _, here = G("GetInstanceInfo")()
+          if here == "none" then error("not in an instance: press Skip if you skipped the dungeon", 0) end
           showWindow()
           local name = G("GetInstanceInfo")()
           local tc = TC()
