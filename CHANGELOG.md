@@ -1,10 +1,10 @@
 # Magely Changelog
 
-## Unreleased
+## v1.1.1 - 2026-11-18
 
 ### Changed
 - **Checked on game build 1.60.1.70959**, the current WoW: Forever client. Nothing Magely relies on
-  changed.
+  changed in this build, so there is nothing to do after updating.
 - **The window's text follows your client's language.** On a Korean or Chinese client, names
   and labels in the buff window used to draw as empty boxes; they now use the client's own font.
   English and other Latin clients, and Russian, look exactly as before. (A Korean or Chinese

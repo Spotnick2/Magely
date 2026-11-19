@@ -108,6 +108,10 @@ durations from live auras and relearns them when the client build changes. The c
 pane in the screenshot is from the older Anniversary edition and is not available in Forever.
 If a Forever instance is missing from the Amplify/Dampen list, please report its in-game name.
 
+The window's text uses a font for your client's language, so names on a Korean or Chinese client
+show as text. A Korean or Chinese name on an English client still shows as boxes, because the
+English client has no font for it.
+
 Forever can hide aura data during combat. Magely uses its last observation and shows `?` if no
 reliable reading is available. Window movement, closing and minimize/restore requests made during
 combat take effect after combat ends.
