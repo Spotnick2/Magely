@@ -28,10 +28,11 @@ Magely = Magely or {}
 -- two apart), r28 where lib:Refusal says why New refused, and r34 where
 -- SpellReport counts names of unknown origin apart (/magely help). r35 moved
 -- the shared test stub onto WowTestKit (#61) and r36 draws the window's text
--- in LibGlass's per-language font; neither is something Magely calls, but the
--- rule holds: keep this equal to the MINOR .pkgmeta pins; tests/test_manifest.lua
--- checks that.
-local NEEDS_MINOR = 36
+-- in LibGlass's per-language font; neither is something Magely calls. r39 adds
+-- refusal memory (#97), which Magely opts into guarded by `ui.RefusalEvents`.
+-- The rule holds: keep this equal to the MINOR .pkgmeta pins;
+-- tests/test_manifest.lua checks that.
+local NEEDS_MINOR = 39
 
 -- Magely's own record of the events this client rejected, for
 -- `/dump Magely.eventFailures`. The library also keeps it, as
