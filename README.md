@@ -119,9 +119,10 @@ combat take effect after combat ends.
 If the game refuses Arcane Intellect with "A more powerful spell is already active" out of
 combat, because something stronger is already on that member, the row's single-target click
 skips them for up to 30 seconds: both clicks until you learn Arcane Brilliance, then the right
-click. Entering combat or a change to their buffs ends it sooner. Magely can't tell in advance
-whose buff is stronger, so the first cast on that member still fails, and when everyone left has
-been refused the click casts nothing. You can still pick them yourself from the popover.
+click. Entering combat, or a buff being removed or updated on them, can end it sooner. Magely
+can't tell in advance whose buff is stronger, so the first cast on that member still fails, and
+when everyone left has been refused the click casts nothing. You can still pick them yourself from
+the popover.
 
 ---
 
