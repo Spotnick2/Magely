@@ -1,5 +1,22 @@
 # Magely Changelog
 
+## Unreleased
+
+### Fixed
+- When the game refuses Arcane Intellect with "A more powerful spell is already active" out of
+  combat, because something stronger is already on that member, the row's single-target click
+  now skips them instead of trying them again: both clicks until you know Arcane Brilliance, then
+  the right click (the Brilliance click is unchanged). The refused cast teaches this whether it
+  came from the window, an action bar or a macro, as long as it was the rank the row casts (your
+  highest); a macro casting a lower rank that gets refused doesn't. The skip lasts up to 30
+  seconds; entering combat or a change to their buffs ends it sooner. If everyone left has been
+  refused, the click casts nothing. You can still pick a skipped member yourself from the
+  popover.
+
+### Changed
+- Updated the embedded LibGroupBuffs to r39 (was r36), which adds this refusal memory (#97).
+  LibGlass is still r13.
+
 ## v1.1.1 - 2026-11-18
 
 ### Changed
