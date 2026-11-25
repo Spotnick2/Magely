@@ -1,6 +1,6 @@
 # Magely Changelog
 
-## Unreleased
+## v1.1.2 - 2026-11-25
 
 ### Fixed
 - When the game refuses Arcane Intellect with "A more powerful spell is already active" out of
@@ -11,7 +11,8 @@
   highest); a macro casting a lower rank that gets refused doesn't. The skip lasts up to 30
   seconds; entering combat or a change to their buffs ends it sooner. If everyone left has been
   refused, the click casts nothing. You can still pick a skipped member yourself from the
-  popover.
+  popover. This has passed offline tests and was checked in game with Buffy's Fortitude on the
+  same library; it hasn't been checked in game for Arcane Intellect yet.
 
 ### Changed
 - Updated the embedded LibGroupBuffs to r39 (was r36), which adds this refusal memory (#97).
